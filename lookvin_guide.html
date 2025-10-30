@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>乐酒大赏品鉴攻略 (最终完整版)</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.7; color: #333; max-width: 1000px; margin: 0 auto; padding: 20px; background-color: #fdfdfd; }
+        h1, h2, h3, h4 { color: #2c3e50; }
+        h1 { text-align: center; border-bottom: 3px solid #7b2cbf; padding-bottom: 15px; margin-bottom: 30px; }
+        h2 { background-color: #5a189a; color: white; padding: 12px; border-radius: 8px; text-align: center; border-bottom: none; margin-top: 40px; }
+        h3 { border-bottom: 2px solid #e0cffc; padding-bottom: 8px; margin-top: 30px; }
+        h4 { color: #7b2cbf; }
+        /* Add scroll margin to anchor targets to offset for the fixed navigation bar */
+        h3[id^="nav-"] {
+            scroll-margin-top: 85px;
+        }
+        ul { list-style-type: none; padding-left: 0; }
+        li { background-color: #f8f9fa; border-left: 4px solid #be95e6; padding: 15px; margin-bottom: 10px; border-radius: 4px; }
+        .tier-label { font-weight: bold; color: #c71f37; margin-right: 10px; }
+        .winery-name { font-weight: bold; font-size: 1.1em; color: #343a40; }
+        .winery-desc { margin-top: 5px; }
+
+        /* --- Quick Nav CSS --- */
+        /* Desktop Nav */
+        .quick-nav-desktop {
+            position: fixed;
+            left: 20px;
+            top: 100px;
+            width: 140px;
+            z-index: 1000;
+        }
+        .quick-nav-desktop .nav-inner {
+            background: #ffffff;
+            border: 1px solid #e0cffc;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .quick-nav-desktop h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            text-align: center;
+            color: #5a189a;
+            font-size: 1.1em;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            flex-shrink: 0;
+        }
+        .quick-nav-desktop ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            overflow-y: auto;
+        }
+        .quick-nav-desktop li a {
+            display: block;
+            padding: 8px 12px;
+            color: #343a40;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: background-color 0.2s, color 0.2s;
+            font-size: 0.95em;
+        }
+        .quick-nav-desktop li a:hover {
+            background-color: #7b2cbf;
+            color: #fff;
+        }
+
+        /* Mobile Nav - Compact version */
+        .quick-nav-mobile {
+            display: none; /* Hidden by default */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.98); /* Slightly more opaque */
+            backdrop-filter: blur(5px);
+            border-bottom: 1px solid #e0e0e0;
+            z-index: 1100;
+            padding: 2px 0; /* Reduced padding */
+            box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+        }
+        .quick-nav-mobile ul {
+            display: flex;
+            overflow-x: auto;
+            padding: 3px 8px; /* Reduced padding */
+            margin: 0;
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        .quick-nav-mobile ul::-webkit-scrollbar { display: none; } /* Chrome, Safari, Opera */
+        .quick-nav-mobile li a {
+            display: block;
+            padding: 6px 12px; /* Reduced padding */
+            color: #343a40;
+            text-decoration: none;
+            white-space: nowrap;
+            border-radius: 6px;
+            font-size: 0.85em; /* Reduced font size */
+            font-weight: 500;
+        }
+        .quick-nav-mobile li a:hover {
+            background-color: #e8dff5; /* Lighter hover */
+        }
+
+        /* Media Query to switch between navs */
+        @media (max-width: 1200px) {
+            .quick-nav-desktop { display: none; }
+            .quick-nav-mobile { display: block; }
+            body { padding-top: 45px; } /* Adjusted for new compact nav height */
+        }
+    </style>
+</head>
+<body>
+    <!-- Desktop Navigation -->
+    <nav class="quick-nav-desktop">
+        <div class="nav-inner">
+            <h4>快速导航</h4>
+            <ul>
+                <li><a href="#nav-booth">置顶</a></li>
+                <li><a href="#nav-france">法国</a></li>
+                <li><a href="#nav-italy">意大利</a></li>
+                <li><a href="#nav-usa">美国</a></li>
+                <li><a href="#nav-spain">西班牙</a></li>
+                <li><a href="#nav-new-zealand">新西兰</a></li>
+                <li><a href="#nav-chile">智利</a></li>
+                <li><a href="#nav-australia">澳大利亚</a></li>
+                <li><a href="#nav-argentina">阿根廷</a></li>
+                <li><a href="#nav-germany">德国</a></li>
+                <li><a href="#nav-china">中国</a></li>
+                <li><a href="#nav-south-africa">南非</a></li>
+                <li><a href="#nav-canada">加拿大</a></li>
+                <li><a href="#nav-other-old-world">其他</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Mobile Navigation -->
+    <nav class="quick-nav-mobile">
+        <ul>
+            <li><a href="#nav-booth">置顶</a></li>
+            <li><a href="#nav-france">法国</a></li>
+            <li><a href="#nav-italy">意大利</a></li>
+            <li><a href="#nav-usa">美国</a></li>
+            <li><a href="#nav-spain">西班牙</a></li>
+            <li><a href="#nav-new-zealand">新西兰</a></li>
+            <li><a href="#nav-chile">智利</a></li>
+            <li><a href="#nav-australia">澳大利亚</a></li>
+            <li><a href="#nav-argentina">阿根廷</a></li>
+            <li><a href="#nav-germany">德国</a></li>
+            <li><a href="#nav-china">中国</a></li>
+            <li><a href="#nav-south-africa">南非</a></li>
+            <li><a href="#nav-canada">加拿大</a></li>
+            <li><a href="#nav-other-old-world">其他</a></li>
+        </ul>
+    </nav>
+
+    <!-- <h1>乐酒大赏品鉴攻略</h1> -->
+
+    <h2 id="nav-booth">展位概览 </h2>
+    <h4>T0</h4>
+    <ul>
+
+        
+        <li><span class="winery-name">B08 (勃艮第顶流)</span><div class="winery-desc"><strong>勒弗莱(Domaine Leflaive)</strong> - 勃艮第白之王; <strong>菜刀(Prieuré Roch)</strong> - 罗曼尼康帝联合庄主创立的自然酒先锋; <strong>双狗抱树(Domaine Geantet-Pansiot)</strong> - 精于热夫雷-香贝丹村的纯净果味表达。</div></li>
+        <li><span class="winery-name">B09 (顶级集合)</span><div class="winery-desc"><strong>平古斯(Pingus)</strong> - 西班牙膜拜级车库酒; <strong>柏菲(Château Pavie)</strong> - 圣爱美隆A级庄; <strong>科奇-杜里(Coche-Dury)</strong> - 勃艮第默尔索传奇。</div></li>
+        <li><span class="winery-name">A07 (玛歌)</span><div class="winery-desc"><strong>玛歌(Château Margaux)</strong> - 波尔多一级庄，优雅芬芳的典范。</div></li>
+        <li><span class="winery-name">A20 (智利双雄)</span><div class="winery-desc"><strong>桑雅(Viño Sena)</strong> 与 <strong>查德威克(Vinedo Chadwick)</strong> - 智利最顶级的两款酒，柏林盲品会一战成名。</div></li>
+        <li><span class="winery-name">A10 (阿根廷酒王)</span><div class="winery-desc"><strong>卡帝娜(Catena Zapata)</strong> - 阿根廷的绝对王者，奠定马尔贝克国际声誉的传奇。</div></li>
+        <li><span class="winery-name">D01 (意大利)</span><div class="winery-desc"><strong>嘉雅(Gaja)</strong> - 意大利现代派之父;<strong>犀牛庄(La Spinetta)</strong> - 风格华丽的皮埃蒙特名家。</div></li>
+        <li><span class="winery-name">D14 (膜拜酒集合)</span><div class="winery-desc"><strong>大龙(Soldera)</strong> - BDM膜拜酒;<strong>皮埃尔·莫雷(Domaine Pierre Morey)</strong> - 默尔索大师; <strong>哈兰(Harlan Estate)</strong>与<strong>邦德(Bond)</strong> - 美国膜拜酒的巅峰代表。</div></li>
+        <li><span class="winery-name">C01 (新旧世界双王)</span><div class="winery-desc"><strong>雄狮(Léoville Las Cases)</strong> - 波尔多“超二级庄”王者; <strong>活灵魂(Almaviva)</strong> - 木桐与干露合作的智利酒王。</div></li>
+        <li><span class="winery-name">C02 (西班牙酒王)</span><div class="winery-desc"><strong>贝加西西里亚(Vega-Sicilia)</strong> - 西班牙的传奇，Unico是其不朽之作。</div></li>
+        <li><span class="winery-name">C11 (澳洲T0)</span><div class="winery-desc"><strong>御兰堡(Yalumba)</strong> - 澳洲“活化石”级酒庄; <strong>罗伯特·蒙大维(Robert Mondavi)</strong> - “加州葡萄酒教父”相关酒庄。</div></li>
+        <li><span class="winery-name">E01 (LVMH集团)</span><div class="winery-desc"><strong>敖云(Ao Yun)</strong> - LVMH打造的中国膜拜酒; <strong>瓏岱(Long Dai)(E02)</strong> - 拉菲罗斯柴尔德集团在中国的酒庄; <strong>台阶(Terrazas)</strong> - 阿根廷高海拔风土典范; <strong>约瑟夫菲尔普斯(Joseph Phelps)</strong> - 纳帕谷先驱，旗舰“徽章”是顶级加州酒象征; <strong>云雾之湾(Cloudy Bay)</strong> - 新西兰长相思的代名词; <strong>蝶之兰(Chateau d'Esclans)</strong> - 普罗旺斯桃红标杆;木桐家族在智利的项目<strong>MAPU</strong>。</div></li>
+
+    </ul>
+    <h4>T1</h4>
+    <ul>
+        <li><span class="winery-name">A11 (勃艮第名家)</span><div class="winery-desc">“大金杯”<strong>格鲁兄妹(Gros Frere et Soeur)</strong>和酒神侄子<strong>米歇尔·诺拉(Michel Noellat)</strong>。</div></li>
+        <li><span class="winery-name">D13 (安东尼世家)</span><div class="winery-desc"><strong>安东尼世家(Marchesi Antinori)</strong> - 超级托斯卡纳的先驱。</div></li>
+        <li><span class="winery-name">D14 (美国新星)</span><div class="winery-desc"><strong>00 Wines</strong> - 俄勒冈新星，由DRC酿酒顾问打造。</div></li>
+        <li><span class="winery-name">B03 (北罗、阿根廷与新西兰)</span><div class="winery-desc">北罗纳顶级名家<strong>嘉伯乐(Paul Jaboulet Aîné)</strong>;阿根廷第一女酿酒师<strong>苏珊娜巴尔博(Susana Balbo)</strong>;新西兰顶尖名庄<strong>克拉吉(Craggy Range)</strong>。</div></li>
+        <li><span class="winery-name">B05 (桑塞尔与美国新贵)</span><div class="winery-desc"><strong>帕斯卡·科塔(Pascal Cotat)</strong> - 桑塞尔膜拜级酒庄; <strong>The Mascot</strong> - 美国膜拜酒“副牌”。</div></li>
+        <li><span class="winery-name">A01 (新西兰)</span><div class="winery-desc"><strong>Church Road Winery</strong> - 听过没喝过。</div></li>
+        <li><span class="winery-name">A02 (新西兰)</span><div class="winery-desc"><strong>Cirro Wines</strong> - 听过没喝过，在中国有项目。</div></li>
+        <li><span class="winery-name">A04 (新西兰有机)</span><div class="winery-desc"><strong>Terrace Edge</strong> - 三次荣获“新西兰有机葡萄园冠军”。</div></li>
+        <li><span class="winery-name">A10 (新世界宝藏)</span><div class="winery-desc">阿根廷高海拔名家<strong>圣东尼(El Esteco)</strong>和智利可持续先锋<strong>冰川(Ventisquero)</strong>。</div></li>
+        <li><span class="winery-name">C07 (南非膜拜)</span><div class="winery-desc">南非自然派膜拜酒庄<strong>春田(Springfield Estate)</strong>，奉行“零干预”酿酒。</div></li>
+        <li><span class="winery-name">A19 (智利名家)</span><div class="winery-desc">智利五大家族之一的<strong>埃德华兹(Luis Felipe Edwards)</strong>。</div></li>
+        <li><span class="winery-name">A22 (智利先锋)</span><div class="winery-desc">智利佳美娜的先锋<strong>德马蒂诺(De Martino)</strong>，有机种植。</div></li>
+        <li><span class="winery-name">E10, E11, E12 (宁夏三杰)</span><div class="winery-desc"><strong>西鸽(Xige)</strong>, <strong>贺兰山(Helan Mountain)</strong>, <strong>银色高地(Silver Heights)</strong> - 代表中国宁夏产区顶尖水平。</div></li>
+        <li><span class="winery-name">C11 (澳洲双雄)</span><div class="winery-desc"><strong>露纹酒庄(Leeuwin Estate)</strong> - 澳洲霞多丽天花板; <strong>德保利(De Bortoli)</strong> - 澳洲双红五星酒庄。</div></li>
+        <li><span class="winery-name">A06 (澳洲老藤)</span><div class="winery-desc"><strong>凯狮(Kalleske)</strong> - 百年老藤，曾为奔富葛兰许提供葡萄。</div></li>
+        <li><span class="winery-name">B10, C13 (澳洲新锐)</span><div class="winery-desc"><strong>玄铁酒庄(Centare Vineyard)</strong> - 雅拉谷新锐，自根老藤。</div></li>
+        <li><span class="winery-name">C01 (澳洲鼻祖)</span><div class="winery-desc"><strong>Vasse Felix</strong> - 玛格丽特河的“开山鼻祖”。</div></li>
+        <li><span class="winery-name">D08 (加拿大冰酒)</span><div class="winery-desc">加拿大冰酒传奇<strong>云岭(Inniskillin)</strong>，品质顶尖。</div></li>
+    </ul>
+    <h4>T2</h4>
+    <ul>
+        <li><span class="winery-name">D10 (卢瓦尔河谷与普罗旺斯)</span><div class="winery-desc"><strong>克劳德·里福(Claude Riffault)</strong> - 桑塞尔标杆; <strong>玛斯卡罗尼(Chateau La Mascaronne)</strong> - 顶级普罗旺斯桃红。</div></li>
+        <li><span class="winery-name">A15 (巴尔干双雄)</span><div class="winery-desc"><strong>13.JUL Plantaze</strong> - 黑山国宝级酒庄; <strong>Aleksandrovic</strong> - 塞尔维亚皇室酒庄。</div></li>
+        <li><span class="winery-name">C12 (南非凉爽产区)</span><div class="winery-desc"><strong>The Drift</strong> - 南非最南端凉爽产区的探索者。</div></li>
+        <li><span class="winery-name">A21 (智利新势力)</span><div class="winery-desc"><strong>达格斯(Dagaz)</strong> - 智利新生代酒庄。</div></li>
+        <li><span class="winery-name">D02, D08 (加拿大)</span><div class="winery-desc"><strong>皇庭(King's Court)</strong> - 加拿大冰酒世家; <strong>杰克逊瑞格(Jackson-Triggs)</strong> - 加拿大国民品牌。</div></li>
+        <li><span class="winery-name">C14 (澳洲)</span><div class="winery-desc"><strong>福瑞斯特(Forest Hill Vineyard)</strong> - 西澳最古老凉爽气候葡萄园; <strong>沙维尔(Xavier)</strong> - 维多利亚自然派。</div></li>
+    </ul>
+
+    <h2 id="part2">按产区全览</h2>
+
+
+
+    <h3 id="nav-france">法国 (France)</h3>
+    <h4>勃艮第 (Burgundy)</h4>
+    <ul>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">勒弗莱 (Domaine Leflaive, B08)</span><div class="winery-desc">普利尼-蒙哈榭的王者，生物动力法先驱，“勃艮第白葡萄酒之王”。</div></li>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">科奇-杜里 (Coche-Dury, B09)</span><div class="winery-desc">默尔索的传奇，以力量、纯净和惊人的陈年潜力闻名。</div></li>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">菜刀 (Prieuré Roch, B08)</span><div class="winery-desc">罗曼尼康帝联合庄主创立的自然酒先锋，风格独特，表达纯粹风土。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">格鲁兄妹 (Gros Frere et Soeur, A11)</span><div class="winery-desc">“大金杯”深入人心，经典的沃恩-罗曼尼风格，果味充沛。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">米歇尔·诺拉 (Michel Noellat, A11)</span><div class="winery-desc">酒神亨利·贾叶的侄子，传承经典的优雅与精细。</div></li>
+        <li><span class="tier-label">[T2]</span><span class="winery-name">皮埃尔·莫雷 (Pierre Morey, D14)</span><div class="winery-desc">默尔索大师，前双鸡总管，教科书级白葡萄酒。</div></li>
+        <li><span class="tier-label">[T2]</span><span class="winery-name">让泰-庞索 (Geantet-Pansiot, B08)</span><div class="winery-desc">热夫雷-香贝丹名家，以纯净、集中的果味著称。</div></li>
+    </ul>
+    <h4>波尔多 (Bordeaux)</h4>
+    <ul>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">玛歌 (Château Margaux, A07)</span><div class="winery-desc">1855一级庄，以无与伦比的优雅、芬芳著称，“酒中之后”。</div></li>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">雄狮 (Léoville Las Cases, C01)</span><div class="winery-desc">圣朱利安村的“超二级庄”，品质公认达到一级庄水平。</div></li>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">柏菲 (Château Pavie, B09)</span><div class="winery-desc">圣爱美隆列级A等，以其力量感、浓郁度和现代风格著称。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">高柏丽 (Haut-Bailly, C08)</span><div class="winery-desc">格拉夫列级庄，以一贯的优雅、复杂香气和巨大陈年潜力备受赞誉。</div></li>
+        <li><span class="tier-label">[T2]</span><span class="winery-name">巴特利 (Batailley, C12)</span><div class="winery-desc">波亚克产区的1855五级庄，风格经典，是体验波亚克风格的高性价比之选。</div></li>
+        <li><span class="tier-label">[T2]</span><span class="winery-name">乐普 (Chateau Le Puy, A08)</span><div class="winery-desc">坚定的生物动力法，风格复古、纯粹，是波尔多另类选择。</div></li>
+    </ul>
+    <h4>卢瓦尔河谷 (Loire Valley)</h4>
+    <ul>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">帕斯卡·科塔 (Pascal Cotat, B05)</span><div class="winery-desc">桑塞尔膜拜级，风格浓郁，可陈年。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">克劳德·里福 (Claude Riffault, D10)</span><div class="winery-desc">桑塞尔标杆，以纯净的单一园风土表达著称。</div></li>
+    </ul>
+
+    <h3 id="nav-italy">意大利 (Italy)</h3>
+    <ul>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">嘉雅 (Gaja, D01)</span><div class="winery-desc">意大利现代派之父，其Barbaresco是教科书级别。</div></li>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">大龙 (Soldera, D14)</span><div class="winery-desc">BDM膜拜酒，以极致的纯净、复杂度和生命力成为传奇。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">安东尼世家 (Antinori, D13)</span><div class="winery-desc">拥有天娜和索拉雅的超级托斯卡纳先驱。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">贝塔尼 (Bertani, D03)</span><div class="winery-desc">Amarone的活化石，以超长陈年能力闻名。</div></li>
+        <li><span class="tier-label">[T2]</span><span class="winery-name">犀牛庄 (La Spinetta, D01)</span><div class="winery-desc">风格华丽现代，艺术酒标极具辨识度。</div></li>
+    </ul>
+
+    <h3 id="nav-usa">美国 (USA)</h3>
+    <ul>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">哈兰酒庄 (Harlan Estate, C14)</span><div class="winery-desc">美国膜拜酒的巅峰，与啸鹰齐名，产量稀少，一瓶难求。</div></li>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">邦德酒庄 (Bond, C14)</span><div class="winery-desc">哈兰的兄弟品牌，专注于纳帕谷不同风土的单一园赤霞珠，品质极高。</div></li>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">约瑟夫菲尔普斯 (Joseph Phelps, E01)</span><div class="winery-desc">纳帕谷的先驱，其旗舰“徽章(Insignia)”是加州最早的波尔多风格混酿之一，也是加州顶级酒的象征。</div></li>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">罗伯特·蒙大维 (Robert Mondavi, C11)</span><div class="winery-desc">“加州葡萄酒教父”，其孙子创立的RAEN酒庄黑皮诺被JS评为年度美国酒，值得高度关注。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">The Mascot (B05)</span><div class="winery-desc">哈兰、邦德、Promontory三家顶级名庄的“副牌”，由年轻葡萄藤酿造，是体验膜拜酒精髓的入门之选。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">00 Wines (D14)</span><div class="winery-desc">来自俄勒冈的新星，由DRC酿酒顾问打造，黑皮诺和霞多丽都备受好评。</div></li>
+    </ul>
+
+    <h3 id="nav-spain">西班牙 (Spain)</h3>
+    <ul>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">贝加西西里亚 (Vega-Sicilia, C02)</span><div class="winery-desc">西班牙最传奇的酒庄，其旗舰Unico经近10年陈年才上市，以极度复杂、力量和陈年潜力闻名。</div></li>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">平古斯 (Pingus, B09)</span><div class="winery-desc">杜埃罗河岸的车库酒传奇，使用极致老藤丹魄酿造，产量极稀，是西班牙最昂贵的酒之一。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">牧道园 (Pago de Carraovejas, C02)</span><div class="winery-desc">杜埃罗河岸的现代派名家，品质卓越，风格饱满、浓郁。</div></li>
+        <li><span class="tier-label">[T2]</span><span class="winery-name">德雷男爵 (Baron de Ley, A10)</span><div class="winery-desc">里奥哈经典代表，提供稳定可靠的品质和极高的性价比。</div></li>
+    </ul>
+
+    <h3 id="nav-new-zealand">新西兰 (New Zealand)</h3>
+    <ul>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">云雾之湾 (Cloudy Bay, E01)</span><div class="winery-desc">万宝龙长相思的标杆，新西兰葡萄酒的代名词，品质稳定。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">Church Road Winery (A01)</span><div class="winery-desc">听过没喝过。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">克拉吉 (Craggy Range, B03)</span><div class="winery-desc">新西兰顶尖名庄，专注于单一园，成立仅2年就成为Top 3。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">Terrace Edge (A04)</span><div class="winery-desc">三次荣获“新西兰有机葡萄园冠军”，品质卓越。</div></li>
+    </ul>
+
+
+
+    <h3 id="nav-chile">智利 (Chile)</h3>
+    <ul>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">桑雅 (Sena, A20), 活灵魂 (Almaviva, C01), 查德威克 (Chadwick, A20)</span><div class="winery-desc">智利三杰，品质的巅峰，必喝的朝圣之选。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">德马蒂诺 (De Martino, A22)</span><div class="winery-desc">智利第一家出口佳美娜的酒庄，有机先锋，值得一试。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">埃德华兹 (Luis Felipe Edwards, A19)</span><div class="winery-desc">智利前五大酒庄之一，家族传承，品质稳定。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">冰川 (Ventisquero, A10)</span><div class="winery-desc">智利第一家获得“可持续发展认证”的酒庄，与奔富前酿酒师合作，品质有保障。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">MAPU (E01)</span><div class="winery-desc">木桐罗斯柴尔德家族在智利的项目，品质可靠。</div></li>
+        <li><span class="tier-label">[T2]</span><span class="winery-name">达格斯 (Dagaz, A21)</span><div class="winery-desc">新生代酒庄，探索科尔查瓜谷的新潜力。</div></li>
+    </ul>
+
+    <h3 id="nav-australia">澳大利亚 (Australia)</h3>
+    <ul>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">御兰堡 (Yalumba, C11)</span><div class="winery-desc">澳洲“活化石”级酒庄，最古老的家族酒庄之一，自己制作橡木桶，品质卓越且稳定。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">露纹酒庄 (Leeuwin Estate, C11)</span><div class="winery-desc">玛格丽特河的翘楚，其“艺术系列”霞多丽被誉为澳洲霞多丽的天花板之一。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">德保利 (De Bortoli, C11)</span><div class="winery-desc">澳大利亚“双红五星”酒庄，贵腐酒“Noble One”是其传奇之作。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">杰夫哈迪 (Geoff Hardy, A07)</span><div class="winery-desc">红五星酒庄，两次被评为“年度酒庄”，品质出众。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">凯狮 (Kalleske, A06)</span><div class="winery-desc">百年老藤，生物动力法，曾为奔富葛兰许提供葡萄，旗舰酒款屡获高分。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">玄铁酒庄 (Centare Vineyard, B10, C13)</span><div class="winery-desc">雅拉谷的新锐，自根老藤，高密度种植，充满潜力。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">Vasse Felix (C01)</span><div class="winery-desc">玛格丽特河的“开山鼻祖”，历史悠久。</div></li>
+        <li><span class="tier-label">[T2]</span><span class="winery-name">福瑞斯特 (Forest Hill Vineyard, C14)</span><div class="winery-desc">西澳最古老的凉爽气候葡萄园，具有历史意义。</div></li>
+        <li><span class="tier-label">[T2]</span><span class="winery-name">沙维尔 (Xavier, C14)</span><div class="winery-desc">维多利亚的自然派酒庄，酿酒师履历丰富。</div></li>
+    </ul>
+
+    <h3 id="nav-argentina">阿根廷 (Argentina)</h3>
+    <ul>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">卡帝娜 (Catena Zapata, A10)</span><div class="winery-desc">阿根廷酒王，马尔贝克的代名词，唯一被帕克写入《世界顶级葡萄酒及酒庄全书》的南美酒庄。</div></li>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">台阶 (Terrazas, E01)</span><div class="winery-desc">LVMH旗下，高海拔风土的杰出代表，品质卓越。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">苏珊娜·巴尔博 (Susana Balbo, B03)</span><div class="winery-desc">阿根廷首位女酿酒师，“特浓情女王”，影响力巨大。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">圣东尼 (El Esteco, A10)</span><div class="winery-desc">来自萨尔塔产区，拥有超高海拔葡萄园（1700-2000米），风格独特。</div></li>
+    </ul>
+    <h3 id="nav-germany">德国 (Germany)</h3>
+    <ul>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">伊贡米勒 (Egon Müller)</span><div class="winery-desc">德国雷司令之王，其沙兹堡（Scharzhofberger）TBA是世界最贵甜白之一。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">哈特 (Haart, A05)</span><div class="winery-desc">摩泽尔顶级名家，拥有黄金滴露园等名园，雷司令纯净、优雅。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">德雷西 (Dreissigacker, A05)</span><div class="winery-desc">莱茵黑森的生物动力法先锋，雷司令干白以精准、纯净著称。</div></li>
+    </ul>
+
+    <h3 id="nav-china">中国 (China)</h3>
+    <ul>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">敖云 (Ao Yun, E01)</span><div class="winery-desc">LVMH在云南香格里拉打造的中国膜拜酒，风格兼具波尔多的结构与高海拔的清爽。</div></li>
+        <li><span class="tier-label">[T0]</span><span class="winery-name">瓏岱酒庄 (E02)</span><div class="winery-desc">拉菲罗斯柴尔德集团在中国的酒庄，品质卓越，代表了国际资本对中国风土的顶级诠释。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">怡园酒庄 (F02)</span><div class="winery-desc">很好喝的马瑟兰。</div></li>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">西鸽酒庄 (Xige Estate, E10)</span><div class="winery-desc">宁夏领军者，品质稳定，风格现代。必试N50和玉鸽单一园蛇龙珠。</div></li>
+        <li><span class="tier-label">[T2]</span><span class="winery-name">卷云酒庄 (Craggy Range China Project, A02)</span><div class="winery-desc">新西兰名庄在中国的探索项目，首款是西拉混酿，值得关注。</div></li>
+    </ul>
+
+    <h3 id="nav-south-africa">南非 (South Africa)</h3>
+    <ul>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">春田 (Springfield Estate, C07)</span><div class="winery-desc">隐世膜拜酒庄，奉行“零干预”自然酿酒，限量酒款登上过《Decanter》南非十大必喝榜单。</div></li>
+        <li><span class="tier-label">[T2]</span><span class="winery-name">The Drift (C12)</span><div class="winery-desc">来自非洲最南端凉爽产区，风格独特，值得探索。</div></li>
+    </ul>
+    <h3 id="nav-canada">加拿大 (Canada)</h3>
+    <ul>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">云岭 (Inniskillin, D08)</span><div class="winery-desc">加拿大冰酒传奇的缔造者，品质顶尖，不容错过。</div></li>
+        <li><span class="tier-label">[T2]</span><span class="winery-name">皇庭 (King's Court, D02)</span><div class="winery-desc">七代传承的家族酒庄，主打高品质冰酒。</div></li>
+        <li><span class="tier-label">[T2]</span><span class="winery-name">杰克逊瑞格 (Jackson-Triggs, D08)</span><div class="winery-desc">加拿大国民品牌，规模与品质俱佳。</div></li>
+    </ul>
+
+
+    <h3 id="nav-other-old-world">其他</h3>
+    <ul>
+        <li><span class="tier-label">[T1]</span><span class="winery-name">睦纱古堡 (Chateau Musar, A14)</span><div class="winery-desc">黎巴嫩的国宝级酒庄，风格极其独特，陈年潜力惊人。</div></li>
+        <li><span class="tier-label">[T2]</span><span class="winery-name">13.JUL Plantaze (A15)</span><div class="winery-desc">黑山国宝级酒庄，欧洲最大单一葡萄园之一，体验巴尔干特色品种Vranac。</div></li>
+        <li><span class="tier-label">[T2]</span><span class="winery-name">Aleksandrovic (A15)</span><div class="winery-desc">塞尔维亚的复兴名庄，拥有皇室血统，旗舰款“Trijumf”拥有传奇历史配方。</div></li>
+    </ul>
+
+</body>
+</html>
