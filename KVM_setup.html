@@ -1,0 +1,6907 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家庭服务器 KVM 虚拟化完整指南</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.0/github-markdown-dark.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --text-color: #c9d1d9;
+            --border-color: #30363d;
+            --code-bg: #161b22;
+            --nav-bg: #161b22;
+            --nav-active: #1f6feb;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+            background: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* 侧边导航栏 */
+        .sidebar {
+            width: 300px;
+            background: var(--nav-bg);
+            border-right: 1px solid var(--border-color);
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .sidebar h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #58a6ff;
+        }
+        
+        .nav-list {
+            list-style: none;
+        }
+        
+        .nav-list li {
+            margin-bottom: 8px;
+        }
+        
+        .nav-list a {
+            color: var(--text-color);
+            text-decoration: none;
+            display: block;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        
+        .nav-list a:hover {
+            background: rgba(56, 139, 253, 0.1);
+            color: #58a6ff;
+        }
+        
+        .nav-list a.active {
+            background: rgba(31, 111, 235, 0.15);
+            color: var(--nav-active);
+            font-weight: 600;
+        }
+        
+        /* 主内容区 */
+        .main-content {
+            flex: 1;
+            margin-left: 300px;
+            padding: 40px 60px;
+            max-width: 1400px;
+        }
+        
+        /* Markdown样式增强 */
+        .markdown-body {
+            background: transparent !important;
+            color: var(--text-color) !important;
+        }
+        
+        .markdown-body h1 {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            color: #58a6ff;
+        }
+        
+        .markdown-body h2 {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            margin-top: 30px;
+            margin-bottom: 16px;
+        }
+        
+        .markdown-body h3 {
+            margin-top: 24px;
+            margin-bottom: 12px;
+        }
+        
+        .markdown-body pre {
+            background: var(--code-bg) !important;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+        }
+        
+        .markdown-body code {
+            background: var(--code-bg) !important;
+            color: #ff7b72 !important;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        
+        .markdown-body pre code {
+            color: var(--text-color) !important;
+            padding: 0;
+        }
+        
+        .markdown-body table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 16px 0;
+        }
+        
+        .markdown-body table th,
+        .markdown-body table td {
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+        }
+        
+        .markdown-body table th {
+            background: var(--code-bg);
+        }
+        
+        .markdown-body blockquote {
+            border-left: 4px solid #388bfd;
+            padding-left: 16px;
+            color: #8b949e;
+        }
+        
+        /* 文档分隔 */
+        .doc-separator {
+            margin: 60px 0;
+            border: none;
+            border-top: 3px solid var(--border-color);
+        }
+        
+        /* 回到顶部按钮 */
+        .back-to-top {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--nav-active);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s, background 0.3s;
+            font-size: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .back-to-top.visible {
+            opacity: 1;
+        }
+        
+        .back-to-top:hover {
+            background: #1158c7;
+        }
+        
+        /* 响应式 */
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-300px);
+                transition: transform 0.3s;
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+            }
+        }
+        
+        /* 打印样式 */
+        @media print {
+            .sidebar,
+            .back-to-top {
+                display: none;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 侧边导航 -->
+        <nav class="sidebar">
+            <h2>📚 文档导航</h2>
+            <ul class="nav-list" id="nav-list">
+                <!-- 导航项将由JavaScript生成 -->
+            </ul>
+        </nav>
+        
+        <!-- 主内容 -->
+        <main class="main-content">
+            <article class="markdown-body" id="content">
+# 家庭服务器 KVM 虚拟化完整指南
+
+## 📚 文档概览
+
+本文档集为您提供从零搭建基于 Rocky Linux 9 + KVM 的家庭服务器完整方案，包含 Python 开发、Web 应用部署、旁路由、NAS 等功能虚拟机的详细配置指南。
+
+### 🖥️ 服务器配置
+
+- **CPU**: AMD Ryzen 5 5600G
+- **主板**: MSI B550M PRO-VDH
+- **内存**: 32GB DDR4 2666MHz (16GB × 2)
+- **存储**: 致态 TiPlus7100s 2TB NVMe SSD
+- **系统**: Rocky Linux 9 Minimal
+- **网络**: 192.168.71.200/24 (静态IP)
+
+### 🎯 虚拟机规划
+
+| 虚拟机 | 操作系统 | 磁盘 | IP地址 | 用途 |
+|--------|----------|------|--------|------|
+| python-dev | Ubuntu 22.04 LTS | 80GB (qcow2) | 192.168.71.201 | Python 开发和测试 |
+| web-app | Ubuntu 22.04 LTS | 100GB (qcow2) | 192.168.71.202 | Web 应用生产部署 |
+| router | OpenWrt/Rocky 9 | 20GB (qcow2) | 192.168.71.254 | 透明代理/旁路由 |
+| nas | Rocky Linux 9 | 30GB (raw) + 500GB 数据 | 192.168.71.210 | 文件共享服务 |
+
+### 📂 存储架构
+
+```
+致态 2TB NVMe SSD
+├─ 系统分区 (110GB)
+│  ├─ / (root)
+│  ├─ /boot
+│  └─ swap
+│
+├─ KVM 存储池 (1.2TB LVM thin pool)
+│  ├─ python-dev.qcow2 (80GB)
+│  ├─ web-app.qcow2 (100GB)
+│  ├─ router.qcow2 (20GB)
+│  ├─ nas-system.raw (30GB)
+│  └─ 预留空间 (~970GB)
+│
+├─ NAS 数据卷 (500GB LVM)
+│  └─ /data/nas (通过 virtio-fs 共享给 NAS VM)
+│
+└─ 未分配空间 (~50GB 应急预留)
+```
+
+### 🌐 网络拓扑
+
+```
+互联网
+  │
+  ├─ 电信云宽带网关 (192.168.71.1)
+  │
+  └─ 物理网络 (192.168.71.0/24)
+       │
+       ├─ 宿主机 (192.168.71.200)
+       │    └─ br0 网桥 (Bridge 模式)
+       │         ├─ python-dev (192.168.71.201)
+       │         ├─ web-app (192.168.71.202)
+       │         ├─ nas (192.168.71.210)
+       │         └─ router (192.168.71.254) ← 可选旁路由网关
+       │
+       └─ 其他局域网设备
+```
+
+---
+
+## 📖 文档导航
+
+### 🚀 第一阶段：基础环境搭建 (必须按顺序执行)
+
+| 文档 | 描述 | 预计时间 |
+|------|------|----------|
+| [01-host-init.md](#section-1) | 宿主机初始化配置&lt;br&gt;• SSH 密钥认证&lt;br&gt;• 系统更新和必要软件安装&lt;br&gt;• 国内镜像源配置&lt;br&gt;• 防火墙和 SELinux 配置 | 20 分钟 |
+| [02-kvm-setup.md](#section-2) | KVM 虚拟化环境搭建&lt;br&gt;• KVM/QEMU 安装&lt;br&gt;• libvirt 配置&lt;br&gt;• 网桥创建&lt;br&gt;• 验证虚拟化支持 | 30 分钟 |
+| [03-storage-expansion.md](#section-3) | 磁盘空间扩展&lt;br&gt;• LVM thin pool 创建 (1.2TB)&lt;br&gt;• NAS 数据卷创建 (500GB)&lt;br&gt;• KVM 存储池配置&lt;br&gt;• 一键自动化脚本 | 20 分钟 |
+| [04-vm-management.md](#section-4) | 虚拟机创建和管理&lt;br&gt;• VM 创建脚本&lt;br&gt;• 自动启动配置&lt;br&gt;• 资源分配策略&lt;br&gt;• 统一管理工具 | 15 分钟 |
+| [05-monitoring.md](#section-5) | 监控方案部署&lt;br&gt;• Cockpit Web 控制台&lt;br&gt;• 虚拟机性能监控&lt;br&gt;• 资源使用脚本&lt;br&gt;• 告警配置 | 25 分钟 |
+
+### 🛠️ 第二阶段：虚拟机配置 (可根据需要选择)
+
+| 文档 | 描述 | 预计时间 |
+|------|------|----------|
+| [06-vm-python-dev.md](#section-6) | Python 开发环境配置&lt;br&gt;• Ubuntu 22.04 安装&lt;br&gt;• Python 3.11+ 环境&lt;br&gt;• pip 清华源配置&lt;br&gt;• 常用开发工具 | 40 分钟 |
+| [07-vm-web-app.md](#section-7) | Web 应用部署环境&lt;br&gt;• Nginx + uWSGI/Gunicorn&lt;br&gt;• PostgreSQL/MySQL&lt;br&gt;• Docker 环境&lt;br&gt;• SSL 证书配置 | 50 分钟 |
+| [08-vm-router-comparison.md](#section-8) | 旁路由方案对比&lt;br&gt;• OpenWrt vs V2Ray 详细对比&lt;br&gt;• 适用场景分析&lt;br&gt;• 性能和易用性评估&lt;br&gt;• 方案选择建议 | 阅读 15 分钟 |
+| [09-vm-router-openwrt.md](#section-9) | OpenWrt 旁路由配置&lt;br&gt;• OpenWrt 安装&lt;br&gt;• OpenClash 插件配置&lt;br&gt;• Clash 订阅导入&lt;br&gt;• 自动/手动网关设置 | 60 分钟 |
+| [10-vm-router-v2ray.md](#section-10) | V2Ray 旁路由配置&lt;br&gt;• Rocky 9 + V2Ray 安装&lt;br&gt;• 透明代理配置&lt;br&gt;• 订阅转换和更新&lt;br&gt;• 分流规则优化 | 60 分钟 |
+| [11-vm-nas.md](#section-11) | NAS 文件共享服务&lt;br&gt;• Samba (Windows/macOS/iOS)&lt;br&gt;• NFS (Linux/高性能)&lt;br&gt;• virtio-fs 宿主机共享&lt;br&gt;• 外网访问 (VPN/FRP) | 70 分钟 |
+
+### 🔧 第三阶段：运维和维护 (参考文档)
+
+| 文档 | 描述 |
+|------|------|
+| [12-backup-restore.md](#section-12) | 备份和恢复策略&lt;br&gt;• 虚拟机快照和备份&lt;br&gt;• 定期备份脚本&lt;br&gt;• 增量备份方案&lt;br&gt;• 灾难恢复流程 |
+| [13-maintenance.md](#section-13) | 系统维护指南&lt;br&gt;• 正确的关机和启动流程&lt;br&gt;• 虚拟机自动启动配置&lt;br&gt;• 系统更新策略&lt;br&gt;• 日常维护检查清单 |
+| [14-troubleshooting.md](#section-14) | 常见问题排查&lt;br&gt;• 内存显示 27G 的原因&lt;br&gt;• 远程 BIOS 访问方案&lt;br&gt;• 网络连通性问题&lt;br&gt;• 性能优化建议 |
+
+---
+
+## ⚡ 快速开始
+
+### 最小化部署路径（仅测试 KVM 环境）
+
+如果您只想快速测试 KVM 环境，按以下最小路径操作：
+
+```bash
+# 1. 基础配置 (01-host-init.md)
+# 2. KVM 安装 (02-kvm-setup.md)
+# 3. 创建一个测试虚拟机验证环境
+```
+
+**预计时间**: 1 小时
+
+### 完整生产环境部署
+
+如果要部署完整的家庭服务器方案：
+
+```bash
+# 第一天：基础环境 (1-2 小时)
+01 → 02 → 03 → 04 → 05
+
+# 第二天：按需配置虚拟机 (2-4 小时)
+06 (Python 开发) → 07 (Web 应用)
+
+# 第三天：网络服务 (2-3 小时)
+选择 09 (OpenWrt) 或 10 (V2Ray) → 11 (NAS)
+
+# 第四天：备份和优化 (1 小时)
+12 → 13 → 14
+```
+
+**预计时间**: 分 4 天完成，每天 1-4 小时
+
+---
+
+## 📝 使用说明
+
+### 文档特点
+
+✅ **所有脚本可直接复制使用** - 无需修改即可在您的环境中运行  
+✅ **国内网络优化** - 所有配置都包含国内镜像源，确保稳定下载  
+✅ **详细的验证步骤** - 每个操作后都有验证命令，确保配置正确  
+✅ **故障排查指南** - 常见错误和解决方案  
+✅ **模块化设计** - 可以跳过不需要的虚拟机配置
+
+### 注意事项
+
+⚠️ **操作前备份** - 虽然这是新系统，但重要数据请提前备份  
+⚠️ **按顺序操作** - 第一阶段文档必须按顺序执行，第二阶段可以选择性执行  
+⚠️ **检查硬件支持** - 确保 CPU 支持虚拟化 (AMD-V 或 Intel VT-x)  
+⚠️ **网络配置** - 确保 192.168.71.201-254 这些 IP 未被占用  
+⚠️ **脚本安全性** - 所有脚本都会在执行前要求确认，避免误操作
+
+### 脚本使用方式
+
+文档中的脚本有三种类型：
+
+1. **直接命令** - 可以直接在终端执行
+```bash
+# 示例
+dnf update -y
+```
+
+2. **配置文件** - 需要创建文件后复制内容
+```bash
+# 示例
+cat &gt; /etc/example.conf &lt;&lt;'EOF'
+配置内容
+EOF
+```
+
+3. **完整脚本** - 建议保存为 .sh 文件后执行
+```bash
+# 示例
+cat &gt; setup-script.sh &lt;&lt;'EOF'
+#!/bin/bash
+脚本内容
+EOF
+chmod +x setup-script.sh
+./setup-script.sh
+```
+
+---
+
+## 🌟 国内网络优化
+
+本文档集针对国内网络环境进行了全面优化：
+
+### 软件包镜像源
+
+- **Rocky Linux**: 阿里云 / 清华大学镜像
+- **Ubuntu**: 清华大学 / 中科大镜像
+- **Python pip**: 清华大学 pypi 镜像
+- **Docker**: 阿里云容器镜像服务
+- **Node.js/npm**: 淘宝 npm 镜像
+- **Homebrew**: 清华大学镜像
+
+### 下载加速
+
+- **GitHub Release**: 使用 ghproxy.com 或 mirror.ghproxy.com 加速
+- **ISO 镜像**: 提供国内高速下载链接
+- **容器镜像**: 配置国内 Docker Hub 镜像
+
+### 虚拟化镜像下载
+
+所有虚拟机操作系统 ISO 文件都提供国内镜像站下载链接：
+
+- Ubuntu: mirrors.tuna.tsinghua.edu.cn
+- Rocky Linux: mirrors.aliyun.com
+- OpenWrt: mirrors.ustc.edu.cn
+
+---
+
+## 🆘 获取帮助
+
+### 常见问题
+
+大部分问题可以在 [14-troubleshooting.md](#section-14) 中找到答案。
+
+### 检查清单
+
+如果遇到问题，请先检查：
+
+1. ✅ CPU 虚拟化是否已在 BIOS 中启用
+2. ✅ 网络连接是否正常
+3. ✅ 防火墙规则是否正确
+4. ✅ SELinux 是否按文档配置
+5. ✅ IP 地址是否冲突
+6. ✅ 存储空间是否充足
+
+### 系统信息收集
+
+提问前请收集以下信息：
+
+```bash
+# 系统信息
+hostnamectl
+
+# 虚拟化支持
+virt-host-validate
+
+# 磁盘空间
+df -h
+vgs
+lvs
+
+# 网络配置
+ip addr
+virsh net-list --all
+
+# 虚拟机状态
+virsh list --all
+```
+
+---
+
+## 📊 版本历史
+
+- **v1.0** (2026-02-24): 初始版本
+  - 完整的 KVM 虚拟化环境搭建指南
+  - 4 个功能虚拟机配置方案
+  - 国内网络环境优化
+  - 备份和运维文档
+
+---
+
+## 📄 许可
+
+本文档集供个人学习和使用，欢迎分享给有需要的朋友。
+
+---
+
+## 🚦 开始您的旅程
+
+准备好了吗？让我们从第一步开始：
+
+👉 **[01-host-init.md - 宿主机初始化配置](#section-1)**
+
+祝您搭建顺利！🎉
+
+
+
+
+---
+
+
+
+# 01 - 宿主机初始化配置
+
+## 📋 本文档内容
+
+本文档将指导您完成 Rocky Linux 9 宿主机的基础配置，包括：
+
+- ✅ SSH 密钥认证配置
+- ✅ 系统更新和软件包管理
+- ✅ 国内镜像源配置
+- ✅ 防火墙和 SELinux 配置
+- ✅ 必要的系统工具安装
+- ✅ 时区和 NTP 时间同步
+
+**预计耗时**: 20 分钟  
+**难度**: ⭐⭐☆☆☆
+
+---
+
+## 🔐 步骤 1: SSH 密钥认证配置
+
+### 1.1 在您的本地电脑生成 SSH 密钥对（如果还没有）
+
+**Windows 用户** (PowerShell):
+```powershell
+# 检查是否已有密钥
+dir $env:USERPROFILE\.ssh
+
+# 如果没有，生成新密钥
+ssh-keygen -t ed25519 -C "your_email@example.com"
+# 或使用 RSA（兼容性更好）
+ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+
+# 一路回车使用默认路径，可以设置密码或留空
+```
+
+**macOS/Linux 用户**:
+```bash
+# 检查是否已有密钥
+ls -la ~/.ssh
+
+# 如果没有，生成新密钥
+ssh-keygen -t ed25519 -C "your_email@example.com"
+# 或使用 RSA
+ssh-keygen -t rsa -b 4096 -C "your_email@example.com"
+```
+
+### 1.2 将公钥复制到服务器
+
+**方法 A: 使用 ssh-copy-id (推荐，macOS/Linux)**
+
+```bash
+# 以 chris 用户登录
+ssh-copy-id chris@192.168.71.200
+
+# 输入密码后，公钥会自动配置
+```
+
+**方法 B: 手动复制 (适用于所有系统)**
+
+在本地电脑执行：
+```bash
+# Windows (PowerShell)
+type $env:USERPROFILE\.ssh\id_ed25519.pub
+
+# macOS/Linux
+cat ~/.ssh/id_ed25519.pub
+```
+
+复制输出的公钥内容，然后在服务器上执行：
+
+```bash
+# SSH 登录到服务器
+ssh chris@192.168.71.200
+
+# 创建 .ssh 目录并设置权限
+mkdir -p ~/.ssh
+chmod 700 ~/.ssh
+
+# 将公钥添加到 authorized_keys
+cat &gt;&gt; ~/.ssh/authorized_keys &lt;&lt;'EOF'
+[粘贴您刚才复制的公钥内容]
+EOF
+
+# 设置正确的权限
+chmod 600 ~/.ssh/authorized_keys
+```
+
+### 1.3 测试 SSH 密钥登录
+
+```bash
+# 退出当前会话
+exit
+
+# 重新连接，应该不需要输入密码
+ssh chris@192.168.71.200
+
+# 如果成功，您应该直接登录，无需密码
+```
+
+### 1.4 （可选）禁用密码登录，仅允许密钥认证
+
+⚠️ **警告**: 在执行此步骤前，请确保密钥登录已经测试成功！
+
+```bash
+# 切换到 root 用户
+sudo su -
+
+# 备份 SSH 配置文件
+cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak.$(date +%F)
+
+# 修改配置
+cat &gt;&gt; /etc/ssh/sshd_config.d/10-harden.conf &lt;&lt;'EOF'
+# 禁用密码认证
+PasswordAuthentication no
+# 禁用质询响应认证
+ChallengeResponseAuthentication no
+# 启用公钥认证
+PubkeyAuthentication yes
+# 禁止 root 直接登录（建议）
+PermitRootLogin no
+EOF
+
+# 测试配置文件语法
+sshd -t
+
+# 如果没有错误，重启 SSH 服务
+systemctl restart sshd
+
+# 退出 root，保持当前 SSH 连接不要断开
+exit
+```
+
+### 1.5 验证配置
+
+**在另一个终端窗口**测试新连接（不要关闭当前连接，以防配置错误）：
+
+```bash
+# 测试密钥登录
+ssh chris@192.168.71.200
+
+# 如果成功，配置完成！
+```
+
+---
+
+## 📦 步骤 2: 配置国内镜像源（提升下载速度）
+
+### 2.1 备份原有配置
+
+```bash
+# 切换到 root
+sudo su -
+
+# 备份原有的 repo 配置
+# 注意：虽然目录名是 yum.repos.d（历史遗留），但命令使用 dnf
+# 在 Rocky 9 中，yum 只是 dnf 的软链接
+mkdir -p /etc/yum.repos.d/backup
+mv /etc/yum.repos.d/*.repo /etc/yum.repos.d/backup/
+```
+
+### 2.2 配置阿里云镜像源
+
+```bash
+# 创建 Rocky Linux 9 阿里云镜像配置
+cat &gt; /etc/yum.repos.d/rocky-aliyun.repo &lt;&lt;'EOF'
+[baseos]
+name=Rocky Linux $releasever - BaseOS - Aliyun
+baseurl=https://mirrors.aliyun.com/rockylinux/$releasever/BaseOS/$basearch/os/
+gpgcheck=1
+enabled=1
+countme=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
+
+[appstream]
+name=Rocky Linux $releasever - AppStream - Aliyun
+baseurl=https://mirrors.aliyun.com/rockylinux/$releasever/AppStream/$basearch/os/
+gpgcheck=1
+enabled=1
+countme=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
+
+[extras]
+name=Rocky Linux $releasever - Extras - Aliyun
+baseurl=https://mirrors.aliyun.com/rockylinux/$releasever/extras/$basearch/os/
+gpgcheck=1
+enabled=1
+countme=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
+
+[crb]
+name=Rocky Linux $releasever - CRB - Aliyun
+baseurl=https://mirrors.aliyun.com/rockylinux/$releasever/CRB/$basearch/os/
+gpgcheck=1
+enabled=0
+countme=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
+EOF
+```
+
+### 2.3 配置 EPEL 镜像源（额外软件包）
+
+```bash
+# 安装 EPEL 仓库
+dnf install -y epel-release
+
+# 备份 EPEL 原始配置
+cp /etc/yum.repos.d/epel.repo /etc/yum.repos.d/epel.repo.bak
+
+# 使用阿里云 EPEL 镜像
+sed -i 's|^metalink=|#metalink=|g' /etc/yum.repos.d/epel.repo
+sed -i 's|^#baseurl=https://download.example/pub|baseurl=https://mirrors.aliyun.com|g' /etc/yum.repos.d/epel.repo
+```
+
+### 2.4 清理并重建缓存
+
+```bash
+# 清理缓存
+dnf clean all
+
+# 创建缓存
+dnf makecache
+
+# 验证镜像源
+dnf repolist
+```
+
+您应该看到类似如下输出：
+```
+repo id                    repo name
+appstream                  Rocky Linux 9 - AppStream - Aliyun
+baseos                     Rocky Linux 9 - BaseOS - Aliyun
+epel                       Extra Packages for Enterprise Linux 9
+extras                     Rocky Linux 9 - Extras - Aliyun
+```
+
+---
+
+## 🔄 步骤 3: 系统更新
+
+### 3.1 更新所有软件包
+
+```bash
+# 更新系统（这可能需要几分钟）
+dnf update -y
+
+# 查看更新了哪些包
+dnf history info last
+```
+
+### 3.2 如果内核更新，重启系统
+
+```bash
+# 检查是否有新内核
+dnf list kernel --installed
+
+# 如果更新了内核，重启系统
+reboot
+
+# 等待约 1 分钟后重新连接
+# ssh chris@192.168.71.200
+
+# 验证内核版本
+uname -r
+```
+
+---
+
+## 🛠️ 步骤 4: 安装必要的系统工具
+
+### 4.1 安装常用工具包
+
+```bash
+sudo su -
+
+# 安装开发工具和常用软件
+dnf install -y \
+    vim \
+    wget \
+    curl \
+    git \
+    htop \
+    tmux \
+    net-tools \
+    bind-utils \
+    telnet \
+    traceroute \
+    lsof \
+    sysstat \
+    iotop \
+    ncdu \
+    tree \
+    rsync \
+    bash-completion \
+    policycoreutils-python-utils
+
+# 验证安装
+which vim git htop
+```
+
+### 4.2 配置 vim 基础环境
+
+```bash
+# 为 root 用户配置 vim
+cat &gt; /root/.vimrc &lt;&lt;'EOF'
+syntax on
+set number
+set tabstop=4
+set shiftwidth=4
+set expandtab
+set autoindent
+set smartindent
+set showmatch
+set hlsearch
+set incsearch
+set ignorecase
+set smartcase
+set encoding=utf-8
+EOF
+
+# 为 chris 用户配置 vim
+cp /root/.vimrc /home/chris/.vimrc
+chown chris:chris /home/chris/.vimrc
+```
+
+---
+
+## ⏰ 步骤 5: 时区和时间同步配置
+
+### 5.1 设置时区
+
+```bash
+# 查看当前时区
+timedatectl
+
+# 设置为中国时区
+timedatectl set-timezone Asia/Shanghai
+
+# 验证
+timedatectl
+date
+```
+
+### 5.2 配置 NTP 时间同步
+
+```bash
+# 安装 chrony（Rocky 9 默认时间同步工具）
+dnf install -y chrony
+
+# 备份配置
+cp /etc/chrony.conf /etc/chrony.conf.bak
+
+# 配置国内 NTP 服务器
+cat &gt; /etc/chrony.conf &lt;&lt;'EOF'
+# 使用阿里云和腾讯云 NTP 服务器
+server ntp.aliyun.com iburst
+server ntp1.aliyun.com iburst
+server ntp.tencent.com iburst
+server cn.ntp.org.cn iburst
+
+# 本地时间源
+driftfile /var/lib/chrony/drift
+
+# 允许系统时钟大幅调整
+makestep 1.0 3
+
+# 启用内核时间同步
+rtcsync
+
+# 记录日志
+logdir /var/log/chrony
+EOF
+
+# 启动并启用 chrony 服务
+systemctl enable --now chronyd
+
+# 查看同步状态
+chronyc sources -v
+chronyc tracking
+```
+
+---
+
+## 🔥 步骤 6: 防火墙配置
+
+### 6.1 检查防火墙状态
+
+```bash
+# 查看防火墙状态
+systemctl status firewalld
+
+# 查看当前规则
+firewall-cmd --list-all
+```
+
+### 6.2 配置防火墙规则
+
+```bash
+# 确保 SSH 端口开放（默认已开放）
+firewall-cmd --permanent --add-service=ssh
+
+# 开放 Cockpit Web 控制台端口（后续监控需要）
+firewall-cmd --permanent --add-service=cockpit
+
+# 开放 KVM 虚拟机管理端口（如需远程管理）
+firewall-cmd --permanent --add-service=libvirt
+
+# 重载防火墙规则
+firewall-cmd --reload
+
+# 验证规则
+firewall-cmd --list-all
+```
+
+您应该看到类似输出：
+```
+public (active)
+  target: default
+  services: cockpit dhcpv6-client libvirt ssh
+  ...
+```
+
+---
+
+## 🛡️ 步骤 7: SELinux 配置
+
+### 7.1 查看 SELinux 状态
+
+```bash
+# 查看当前状态
+getenforce
+sestatus
+```
+
+### 7.2 配置 SELinux
+
+对于 KVM 虚拟化环境，建议保持 SELinux 为 **Permissive** 或 **Enforcing** 模式。
+
+**选项 A: 保持 Enforcing（推荐，更安全）**
+
+```bash
+# 确保 SELinux 处于 enforcing 模式
+setenforce 1
+
+# 永久设置
+sed -i 's/^SELINUX=.*/SELINUX=enforcing/' /etc/selinux/config
+
+# 安装 SELinux 管理工具
+dnf install -y policycoreutils-python-utils
+
+# 验证
+getenforce
+```
+
+**选项 B: 设置为 Permissive（仅记录不阻止）**
+
+```bash
+# 设置为 permissive 模式
+setenforce 0
+
+# 永久设置
+sed -i 's/^SELINUX=.*/SELINUX=permissive/' /etc/selinux/config
+
+# 验证
+getenforce
+```
+
+⚠️ **注意**: 如果您是 Linux 新手，建议使用 Permissive 模式，这样 SELinux 不会阻止操作，只会记录违规。等熟悉后再切换到 Enforcing。
+
+---
+
+## 📊 步骤 8: 系统信息检查
+
+### 8.1 创建系统信息查看脚本
+
+```bash
+cat &gt; /usr/local/bin/sysinfo &lt;&lt;'EOF'
+#!/bin/bash
+
+echo "========================================="
+echo "         系统信息概览"
+echo "========================================="
+echo ""
+
+echo "主机名: $(hostname)"
+echo "系统版本: $(cat /etc/redhat-release)"
+echo "内核版本: $(uname -r)"
+echo "运行时间: $(uptime -p)"
+echo ""
+
+echo "--- CPU 信息 ---"
+echo "型号: $(lscpu | grep 'Model name' | cut -d: -f2 | xargs)"
+echo "核心数: $(nproc) 核心"
+echo "虚拟化: $(lscpu | grep 'Virtualization' | cut -d: -f2 | xargs)"
+echo ""
+
+echo "--- 内存信息 ---"
+free -h | grep -E 'Mem|Swap'
+echo ""
+
+echo "--- 磁盘使用 ---"
+df -h | grep -E 'Filesystem|^/dev'
+echo ""
+
+echo "--- 网络配置 ---"
+ip -br addr show | grep -E 'UP|192.168'
+echo ""
+
+echo "--- 系统负载 ---"
+uptime
+echo ""
+
+echo "========================================="
+EOF
+
+chmod +x /usr/local/bin/sysinfo
+```
+
+### 8.2 运行系统信息脚本
+
+```bash
+sysinfo
+```
+
+### 8.3 验证虚拟化支持
+
+```bash
+# 检查 CPU 是否支持虚拟化
+lscpu | grep Virtualization
+
+# AMD CPU 应该显示: AMD-V
+# Intel CPU 应该显示: VT-x
+
+# 检查内核模块
+lsmod | grep kvm
+
+# 如果没有输出，尝试加载模块
+modprobe kvm
+modprobe kvm_amd  # AMD CPU
+# 或
+modprobe kvm_intel  # Intel CPU
+```
+
+---
+
+## ✅ 步骤 9: 验证配置
+
+### 9.1 创建配置验证脚本
+
+```bash
+cat &gt; /root/verify-host-init.sh &lt;&lt;'EOF'
+#!/bin/bash
+
+echo "========================================="
+echo "       宿主机配置验证"
+echo "========================================="
+echo ""
+
+# 颜色定义
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+check_pass() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+check_fail() {
+    echo -e "${RED}✗${NC} $1"
+}
+
+# 1. SSH 密钥配置
+echo "1. 检查 SSH 配置..."
+if grep -q "^PasswordAuthentication no" /etc/ssh/sshd_config* 2&gt;/dev/null; then
+    check_pass "SSH 密钥认证已配置"
+else
+    check_fail "SSH 密码认证仍然启用（可选项）"
+fi
+
+# 2. 镜像源配置
+echo "2. 检查镜像源..."
+if grep -q "aliyun.com" /etc/yum.repos.d/*.repo 2&gt;/dev/null; then
+    check_pass "国内镜像源已配置"
+else
+    check_fail "未配置国内镜像源"
+fi
+
+# 3. 系统更新
+echo "3. 检查系统更新..."
+if dnf check-update &amp;&gt;/dev/null; then
+    check_pass "系统已是最新版本"
+else
+    updates=$(dnf check-update 2&gt;/dev/null | grep -E '^[a-z]' | wc -l)
+    if [ $updates -eq 0 ]; then
+        check_pass "系统已是最新版本"
+    else
+        check_fail "有 $updates 个软件包可更新"
+    fi
+fi
+
+# 4. 时间同步
+echo "4. 检查时间同步..."
+if systemctl is-active chronyd &amp;&gt;/dev/null; then
+    check_pass "时间同步服务运行中"
+else
+    check_fail "时间同步服务未运行"
+fi
+
+# 5. 防火墙
+echo "5. 检查防火墙..."
+if systemctl is-active firewalld &amp;&gt;/dev/null; then
+    check_pass "防火墙运行中"
+    if firewall-cmd --list-services | grep -q cockpit; then
+        check_pass "Cockpit 端口已开放"
+    else
+        check_fail "Cockpit 端口未开放"
+    fi
+else
+    check_fail "防火墙未运行"
+fi
+
+# 6. SELinux
+echo "6. 检查 SELinux..."
+selinux_status=$(getenforce)
+if [ "$selinux_status" == "Enforcing" ] || [ "$selinux_status" == "Permissive" ]; then
+    check_pass "SELinux 状态: $selinux_status"
+else
+    check_fail "SELinux 状态: $selinux_status"
+fi
+
+# 7. 虚拟化支持
+echo "7. 检查虚拟化支持..."
+if lscpu | grep -q 'AMD-V\|VT-x'; then
+    virt_type=$(lscpu | grep Virtualization | cut -d: -f2 | xargs)
+    check_pass "CPU 虚拟化支持: $virt_type"
+else
+    check_fail "CPU 虚拟化未启用（需在 BIOS 中启用）"
+fi
+
+echo ""
+echo "========================================="
+echo "验证完成！"
+echo "========================================="
+EOF
+
+chmod +x /root/verify-host-init.sh
+```
+
+### 9.2 运行验证脚本
+
+```bash
+/root/verify-host-init.sh
+```
+
+---
+
+## 📝 完成检查清单
+
+完成本文档后，您应该已经配置好：
+
+- [x] SSH 密钥认证登录
+- [x] （可选）禁用密码登录
+- [x] 国内镜像源（阿里云/清华）
+- [x] 系统更新到最新版本
+- [x] 常用开发工具和管理工具
+- [x] 时区设置为 Asia/Shanghai
+- [x] NTP 时间同步
+- [x] 防火墙规则（SSH + Cockpit）
+- [x] SELinux 配置
+- [x] 验证 CPU 虚拟化支持
+
+---
+
+## 🔍 故障排查
+
+### 问题 1: SSH 密钥登录失败
+
+**症状**: 配置密钥后仍然要求输入密码
+
+**解决方案**:
+```bash
+# 检查权限
+ls -la ~/.ssh
+# .ssh 目录应该是 700
+# authorized_keys 应该是 600
+
+# 修复权限
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/authorized_keys
+
+# 查看 SSH 日志
+sudo tail -f /var/log/secure
+
+# 尝试连接时查看详细信息
+ssh -v chris@192.168.71.200
+```
+
+### 问题 2: 镜像源配置后仍然很慢
+
+**症状**: dnf 下载速度仍然很慢
+
+**解决方案**:
+```bash
+# 尝试清华大学镜像源
+sed -i 's|mirrors.aliyun.com|mirrors.tuna.tsinghua.edu.cn|g' /etc/yum.repos.d/*.repo
+
+# 清理并重建缓存
+dnf clean all
+dnf makecache
+```
+
+### 问题 3: CPU 虚拟化未检测到
+
+**症状**: `lscpu | grep Virtualization` 无输出
+
+**解决方案**:
+```bash
+# 1. 确认 CPU 支持虚拟化
+cat /proc/cpuinfo | grep -E 'vmx|svm'
+
+# vmx = Intel VT-x
+# svm = AMD-V
+
+# 2. 如果有输出但 lscpu 没有，需要在 BIOS 中启用虚拟化
+# AMD: 查找 "SVM Mode" 或 "AMD-V"
+# Intel: 查找 "Intel VT-x" 或 "Virtualization Technology"
+
+# 3. 启用后重启系统验证
+reboot
+```
+
+### 问题 4: 时间同步失败
+
+**症状**: chronyc 无法同步时间
+
+**解决方案**:
+```bash
+# 检查 chronyd 状态
+systemctl status chronyd
+
+# 查看同步源
+chronyc sources
+
+# 如果全部显示 ^?, 检查防火墙
+firewall-cmd --add-service=ntp --permanent
+firewall-cmd --reload
+
+# 手动强制同步
+chronyc -a makestep
+
+# 查看同步状态
+chronyc tracking
+```
+
+---
+
+## 🎯 下一步
+
+恭喜！您已经完成了宿主机的基础配置。
+
+现在您可以继续下一步：
+
+👉 **[02-kvm-setup.md - KVM 虚拟化环境搭建](#section-2)**
+
+---
+
+## 💡 补充说明
+
+### 为什么要配置国内镜像源？
+
+- **下载速度**: 国外源在国内访问速度很慢，配置国内镜像源可以将下载速度从 100KB/s 提升到 10MB/s 以上
+- **稳定性**: 减少因网络问题导致的安装失败
+- **节省时间**: 大幅缩短软件安装和系统更新时间
+
+### SSH 密钥 vs 密码登录
+
+| 特性 | 密钥认证 | 密码认证 |
+|------|----------|----------|
+| 安全性 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐☆☆ |
+| 便利性 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐☆☆ |
+| 抗暴力破解 | ⭐⭐⭐⭐⭐ | ⭐⭐☆☆☆ |
+| 配置难度 | ⭐⭐⭐☆☆ | ⭐☆☆☆☆ |
+
+**建议**: 家庭服务器建议使用密钥认证，更安全且不需要每次输入密码。
+
+### SELinux 模式选择
+
+- **Enforcing**: 最安全，强制执行策略，可能阻止某些操作
+- **Permissive**: 折中方案，只记录违规不阻止，适合学习
+- **Disabled**: 不推荐，除非特殊需求
+
+**建议**: 新手使用 Permissive，熟悉后切换到 Enforcing。
+
+### YUM vs DNF
+
+这是一个常见的疑问：
+
+**在 Rocky Linux 9 中**:
+- **DNF** (Dandified YUM) 是真正的包管理器
+- **YUM** 只是指向 DNF 的软链接（为了向后兼容）
+- 配置目录仍叫 `/etc/yum.repos.d/`（历史遗留命名）
+
+```bash
+# 验证 yum 是 dnf 的软链接
+ls -l /usr/bin/yum
+# 输出：/usr/bin/yum -&gt; dnf-3
+
+# 两个命令完全等价
+yum install package  # 实际调用 dnf
+dnf install package  # 直接调用 dnf
+```
+
+**为什么目录还叫 yum.repos.d？**
+- 历史兼容性：避免破坏现有脚本和文档
+- 通用约定：所有 RHEL 系列都用这个目录名
+- 实际不影响使用：DNF 会自动读取该目录
+
+**最佳实践**:
+- ✅ 命令使用 `dnf`（更明确，推荐）
+- ✅ 配置目录仍是 `/etc/yum.repos.d/`（系统标准）
+- ⚠️ 不要被目录名困惑，它们是同一个东西
+
+本文档统一使用 `dnf` 命令，但配置目录仍然是 `yum.repos.d`。
+
+
+
+
+---
+
+
+
+# 02 - KVM 虚拟化环境搭建
+
+## 📋 本文档内容
+
+本文档将指导您在 Rocky Linux 9 上安装和配置 KVM (Kernel-based Virtual Machine) 虚拟化环境，包括：
+
+- ✅ 验证硬件虚拟化支持
+- ✅ 安装 KVM/QEMU 和相关工具
+- ✅ 配置 libvirt 服务
+- ✅ 创建网桥 (Bridge) 网络
+- ✅ 安装虚拟机管理工具
+- ✅ 验证 KVM 环境
+
+**前置条件**: 已完成 [01-host-init.md](#section-1)  
+**预计耗时**: 30 分钟  
+**难度**: ⭐⭐⭐☆☆
+
+---
+
+## 🔍 步骤 1: 验证虚拟化支持
+
+### 1.1 检查 CPU 虚拟化扩展
+
+```bash
+# 方法 1: 使用 lscpu
+lscpu | grep Virtualization
+
+# AMD CPU 应该显示: Virtualization:      AMD-V
+# Intel CPU 应该显示: Virtualization:   VT-x
+
+# 方法 2: 检查 CPU flags
+grep -E 'vmx|svm' /proc/cpuinfo
+
+# vmx = Intel VT-x
+# svm = AMD-V
+# 如果有大量输出，说明虚拟化已启用
+```
+
+### 1.2 检查内核 KVM 模块
+
+```bash
+# 检查 KVM 模块是否已加载
+lsmod | grep kvm
+
+# 如果没有输出，手动加载模块
+sudo modprobe kvm
+sudo modprobe kvm_amd   # 对于 AMD CPU (R5 5600G)
+# 或
+# sudo modprobe kvm_intel  # 对于 Intel CPU
+
+# 再次检查
+lsmod | grep kvm
+```
+
+您应该看到类似输出：
+```
+kvm_amd               188416  0
+kvm                  1282048  1 kvm_amd
+```
+
+### 1.3 验证 KVM 设备
+
+```bash
+# 检查 KVM 设备文件
+ls -l /dev/kvm
+
+# 应该显示:
+# crw-rw-rw-. 1 root kvm 10, 232 xxx /dev/kvm
+```
+
+---
+
+## 📦 步骤 2: 安装 KVM 和虚拟化工具
+
+### 2.1 安装 KVM 相关软件包
+
+```bash
+sudo su -
+
+# 安装虚拟化软件包组
+dnf groupinstall -y "Virtualization Host"
+
+# 或者手动安装核心组件
+dnf install -y \
+    qemu-kvm \
+    libvirt \
+    libvirt-daemon-kvm \
+    libvirt-daemon-config-network \
+    libvirt-daemon-config-nwfilter \
+    virt-install \
+    virt-viewer \
+    virt-manager \
+    libguestfs-tools \
+    libguestfs-xfs \
+    python3-libvirt \
+    bridge-utils \
+    net-tools
+```
+
+### 2.2 验证安装
+
+```bash
+# 检查 QEMU 版本
+qemu-kvm --version
+
+# 检查 libvirt 版本
+libvirtd --version
+
+# 检查 virt-install
+virt-install --version
+```
+
+---
+
+## 🔧 步骤 3: 配置 libvirt 服务
+
+### 3.1 启动 libvirt 服务
+
+```bash
+# 启动 libvirtd
+systemctl start libvirtd
+
+# 设置开机自启
+systemctl enable libvirtd
+
+# 检查服务状态
+systemctl status libvirtd
+```
+
+### 3.2 配置 libvirt 用户组
+
+```bash
+# 将 chris 用户添加到 libvirt 组（允许管理虚拟机）
+usermod -aG libvirt chris
+
+# 将 chris 用户添加到 kvm 组
+usermod -aG kvm chris
+
+# 验证
+groups chris
+```
+
+### 3.3 配置 libvirt 网络
+
+```bash
+# 查看默认网络
+virsh net-list --all
+
+# 应该看到 default 网络
+# 如果 default 网络不活跃，启动它
+virsh net-start default
+virsh net-autostart default
+
+# 验证
+virsh net-list --all
+```
+
+输出示例：
+```
+ 名称      状态    自动开始  持久
+---------------------------------------
+ default   活动    是        是
+```
+
+⚠️ **注意**: default 网络是 NAT 模式，我们后续会创建 Bridge 模式网络，但保留 default 网络作为备选。
+
+---
+
+## 🌉 步骤 4: 创建网桥 (Bridge) 网络
+
+### 4.1 查看当前网络配置
+
+```bash
+# 查看网络接口
+ip addr show
+
+# 查看当前网络连接
+nmcli connection show
+
+# 记录当前物理网卡名称（通常是 eno1, enp1s0, eth0 等）
+# 假设您的网卡是 enp1s0
+```
+
+### 4.2 创建网桥配置
+
+⚠️ **重要**: 以下操作会短暂中断网络连接，确保您是通过本地操作或有备用连接方式！
+
+```bash
+# 设置变量（根据实际情况修改）
+BRIDGE_NAME="br0"
+PHYSICAL_INTERFACE="enp1s0"  # ← 替换为您的实际网卡名称
+HOST_IP="192.168.71.200"
+GATEWAY="192.168.71.1"
+DNS1="192.168.71.1"
+DNS2="223.5.5.5"  # 阿里 DNS
+
+# 备份当前网络配置
+cp -r /etc/NetworkManager/system-connections/ /root/network-backup-$(date +%F)
+
+# 创建网桥
+nmcli connection add type bridge \
+    con-name $BRIDGE_NAME \
+    ifname $BRIDGE_NAME \
+    ipv4.method manual \
+    ipv4.addresses $HOST_IP/24 \
+    ipv4.gateway $GATEWAY \
+    ipv4.dns "$DNS1 $DNS2"
+
+# 将物理网卡添加到网桥（作为 slave）
+nmcli connection add type bridge-slave \
+    con-name ${BRIDGE_NAME}-slave \
+    ifname $PHYSICAL_INTERFACE \
+    master $BRIDGE_NAME
+
+# 禁用原有的物理网卡连接
+OLD_CONNECTION=$(nmcli -g NAME,DEVICE connection show | grep "$PHYSICAL_INTERFACE" | grep -v slave | cut -d: -f1)
+if [ -n "$OLD_CONNECTION" ]; then
+    nmcli connection down "$OLD_CONNECTION"
+    nmcli connection delete "$OLD_CONNECTION"
+fi
+
+# 启动网桥
+nmcli connection up $BRIDGE_NAME
+nmcli connection up ${BRIDGE_NAME}-slave
+```
+
+### 4.3 验证网桥配置
+
+```bash
+# 等待几秒钟让网络稳定
+sleep 5
+
+# 检查网桥状态
+ip addr show br0
+
+# 检查桥接接口
+bridge link show
+
+# 测试网络连通性
+ping -c 4 192.168.71.1
+ping -c 4 223.5.5.5
+
+# 检查 DNS 解析
+nslookup www.baidu.com
+```
+
+### 4.4 创建 libvirt 网桥网络定义
+
+```bash
+# 创建网桥网络 XML 定义
+cat &gt; /tmp/br0-network.xml &lt;&lt;'EOF'
+&lt;network&gt;
+  &lt;name&gt;br0&lt;/name&gt;
+  &lt;forward mode="bridge"/&gt;
+  &lt;bridge name="br0"/&gt;
+&lt;/network&gt;
+EOF
+
+# 定义网络
+virsh net-define /tmp/br0-network.xml
+
+# 启动网络
+virsh net-start br0
+
+# 设置自动启动
+virsh net-autostart br0
+
+# 验证
+virsh net-list --all
+```
+
+---
+
+## 🛠️ 步骤 5: 配置防火墙和 SELinux
+
+### 5.1 配置防火墙
+
+```bash
+# 允许网桥流量通过
+firewall-cmd --permanent --zone=public --add-interface=br0
+
+# 允许 libvirt 相关服务
+firewall-cmd --permanent --add-service=libvirt
+
+# 启用 IP 转发（如果需要虚拟机访问外网）
+firewall-cmd --permanent --add-masquerade
+
+# 重载防火墙
+firewall-cmd --reload
+
+# 验证
+firewall-cmd --list-all
+firewall-cmd --get-active-zones
+```
+
+### 5.2 配置 SELinux
+
+```bash
+# 设置 SELinux 布尔值，允许 libvirt 使用 NFS 等
+setsebool -P virt_use_nfs 1
+setsebool -P virt_use_samba 1
+
+# 如果使用 virtio-fs 共享目录（后续 NAS 会用到）
+setsebool -P virt_use_fusefs 1
+
+# 检查设置
+getsebool -a | grep virt
+```
+
+---
+
+## 📂 步骤 6: 配置虚拟机存储目录
+
+### 6.1 创建 ISO 镜像存储目录
+
+```bash
+# 创建目录
+mkdir -p /kvm/iso
+chmod 755 /kvm/iso
+
+# 创建虚拟机磁盘临时存储目录（后续会配置 LVM 存储池）
+mkdir -p /kvm/images
+chmod 711 /kvm/images
+
+# 设置 SELinux 上下文
+semanage fcontext -a -t virt_image_t '/kvm/iso(/.*)?'
+semanage fcontext -a -t virt_image_t '/kvm/images(/.*)?'
+restorecon -Rv /kvm
+```
+
+### 6.2 定义 ISO 存储池
+
+```bash
+# 定义 ISO 存储池
+virsh pool-define-as iso_pool dir - - - - /kvm/iso
+
+# 构建并启动
+virsh pool-build iso_pool
+virsh pool-start iso_pool
+virsh pool-autostart iso_pool
+
+# 验证
+virsh pool-list --all
+virsh pool-info iso_pool
+```
+
+---
+
+## ✅ 步骤 7: 验证 KVM 环境
+
+### 7.1 使用 virt-host-validate 验证
+
+```bash
+# 安装验证工具（通常已包含）
+dnf install -y libvirt-client
+
+# 运行验证
+virt-host-validate
+
+# 您应该看到大部分项目显示 PASS
+# 如果有 WARN 或 FAIL，查看提示信息修复
+```
+
+预期输出：
+```
+  QEMU: Checking for hardware virtualization                                 : PASS
+  QEMU: Checking if device /dev/kvm exists                                   : PASS
+  QEMU: Checking if device /dev/kvm is accessible                            : PASS
+  QEMU: Checking if device /dev/vhost-net exists                             : PASS
+  QEMU: Checking if device /dev/net/tun exists                               : PASS
+  QEMU: Checking for cgroup 'cpu' controller support                         : PASS
+  QEMU: Checking for cgroup 'cpuacct' controller support                     : PASS
+  QEMU: Checking for cgroup 'cpuset' controller support                      : PASS
+  QEMU: Checking for cgroup 'memory' controller support                      : PASS
+  QEMU: Checking for cgroup 'devices' controller support                     : PASS
+  QEMU: Checking for cgroup 'blkio' controller support                       : PASS
+  QEMU: Checking for device assignment IOMMU support                         : WARN (No ACPI IVRS table found, IOMMU either disabled in BIOS or not supported by this hardware platform)
+  LXC: Checking for Linux &gt;= 2.6.26                                          : PASS
+```
+
+⚠️ **注意**: IOMMU 警告可以忽略，除非您需要 PCI 设备直通功能。
+
+### 7.2 创建完整验证脚本
+
+```bash
+cat &gt; /root/verify-kvm-setup.sh &lt;&lt;'EOF'
+#!/bin/bash
+
+# 颜色定义
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo "========================================="
+echo "       KVM 环境验证"
+echo "========================================="
+echo ""
+
+check_pass() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+check_fail() {
+    echo -e "${RED}✗${NC} $1"
+}
+
+check_warn() {
+    echo -e "${YELLOW}⚠${NC} $1"
+}
+
+# 1. CPU 虚拟化
+echo "1. 检查 CPU 虚拟化支持..."
+if lscpu | grep -q 'AMD-V\|VT-x'; then
+    virt_type=$(lscpu | grep Virtualization | cut -d: -f2 | xargs)
+    check_pass "CPU 虚拟化: $virt_type"
+else
+    check_fail "CPU 虚拟化未启用"
+    exit 1
+fi
+
+# 2. KVM 模块
+echo "2. 检查 KVM 内核模块..."
+if lsmod | grep -q kvm; then
+    check_pass "KVM 模块已加载"
+else
+    check_fail "KVM 模块未加载"
+fi
+
+# 3. libvirt 服务
+echo "3. 检查 libvirt 服务..."
+if systemctl is-active --quiet libvirtd; then
+    check_pass "libvirtd 服务运行中"
+else
+    check_fail "libvirtd 服务未运行"
+fi
+
+# 4. 网桥配置
+echo "4. 检查网桥配置..."
+if ip link show br0 &amp;&gt;/dev/null; then
+    check_pass "网桥 br0 已创建"
+    if virsh net-list | grep -q br0; then
+        check_pass "libvirt 网桥网络已配置"
+    else
+        check_warn "libvirt 网桥网络未配置"
+    fi
+else
+    check_fail "网桥 br0 不存在"
+fi
+
+# 5. 存储池
+echo "5. 检查存储池..."
+pool_count=$(virsh pool-list --all | grep -c 'active\|inactive')
+if [ $pool_count -gt 0 ]; then
+    check_pass "已配置 $pool_count 个存储池"
+    virsh pool-list --all | tail -n +3 | while read line; do
+        echo "   - $line"
+    done
+else
+    check_warn "未配置存储池"
+fi
+
+# 6. 网络连通性
+echo "6. 检查网络连通性..."
+if ping -c 1 -W 2 192.168.71.1 &amp;&gt;/dev/null; then
+    check_pass "网关连通正常"
+else
+    check_fail "无法连接到网关"
+fi
+
+if ping -c 1 -W 2 223.5.5.5 &amp;&gt;/dev/null; then
+    check_pass "外网连通正常"
+else
+    check_fail "无法连接到外网"
+fi
+
+# 7. 防火墙
+echo "7. 检查防火墙配置..."
+if firewall-cmd --get-active-zones | grep -q br0; then
+    check_pass "br0 已添加到防火墙"
+else
+    check_warn "br0 未添加到防火墙"
+fi
+
+# 8. 用户组
+echo "8. 检查用户组..."
+if groups chris | grep -q libvirt; then
+    check_pass "chris 用户在 libvirt 组"
+else
+    check_warn "chris 用户不在 libvirt 组"
+fi
+
+echo ""
+echo "========================================="
+echo "执行 virt-host-validate 完整验证..."
+echo "========================================="
+echo ""
+virt-host-validate
+
+echo ""
+echo "========================================="
+echo "验证完成！"
+echo "========================================="
+EOF
+
+chmod +x /root/verify-kvm-setup.sh
+```
+
+### 7.3 运行验证脚本
+
+```bash
+/root/verify-kvm-setup.sh
+```
+
+---
+
+## 🧪 步骤 8: 创建测试虚拟机（可选）
+
+### 8.1 下载轻量级测试 ISO
+
+```bash
+# 下载 Alpine Linux (轻量级，约 200MB)
+cd /kvm/iso
+wget https://mirrors.tuna.tsinghua.edu.cn/alpine/v3.19/releases/x86_64/alpine-virt-3.19.1-x86_64.iso
+
+# 刷新 ISO 存储池
+virsh pool-refresh iso_pool
+
+# 验证 ISO
+virsh vol-list iso_pool
+```
+
+### 8.2 创建测试虚拟机
+
+```bash
+# 创建测试虚拟机（使用临时目录存储）
+virt-install \
+    --name test-vm \
+    --ram 512 \
+    --vcpus 1 \
+    --disk path=/kvm/images/test-vm.qcow2,size=5,format=qcow2 \
+    --network bridge=br0,model=virtio \
+    --graphics vnc,listen=0.0.0.0,port=5900 \
+    --cdrom /kvm/iso/alpine-virt-3.19.1-x86_64.iso \
+    --os-variant alpinelinux3.18 \
+    --noautoconsole
+
+# 查看虚拟机状态
+virsh list --all
+
+# 查看 VNC 端口
+virsh vncdisplay test-vm
+```
+
+### 8.3 连接测试虚拟机
+
+**方法 A: 使用 virt-viewer (如果安装了图形界面)**
+```bash
+virt-viewer test-vm
+```
+
+**方法 B: 使用 VNC 客户端**
+- 在您的电脑上安装 VNC Viewer (如 TigerVNC, RealVNC)
+- 连接到: `192.168.71.200:5900`
+
+**方法 C: 控制台连接（文本模式）**
+```bash
+virsh console test-vm
+# 按 Ctrl+] 退出控制台
+```
+
+### 8.4 删除测试虚拟机
+
+```bash
+# 关闭虚拟机
+virsh destroy test-vm
+
+# 删除虚拟机定义
+virsh undefine test-vm --remove-all-storage
+
+# 验证
+virsh list --all
+```
+
+---
+
+## 📝 完成检查清单
+
+完成本文档后，您应该已经配置好：
+
+- [x] CPU 虚拟化已验证并启用
+- [x] KVM/QEMU 软件包已安装
+- [x] libvirt 服务运行并设置自启动
+- [x] 网桥 br0 已创建并配置
+- [x] libvirt 网桥网络已定义
+- [x] ISO 存储池已创建
+- [x] 防火墙规则已配置
+- [x] SELinux 策略已配置
+- [x] chris 用户已添加到 libvirt 组
+- [x] 验证脚本显示所有关键项目通过
+
+---
+
+## 🔍 故障排查
+
+### 问题 1: 网桥创建后无法连接网络
+
+**症状**: 创建 br0 后 SSH 连接断开或无法访问网络
+
+**解决方案**:
+```bash
+# 如果通过本地控制台访问
+# 检查网桥状态
+nmcli connection show
+
+# 重启网桥
+nmcli connection down br0
+nmcli connection up br0-slave
+nmcli connection up br0
+
+# 如果仍然无法恢复，删除网桥回退
+nmcli connection delete br0
+nmcli connection delete br0-slave
+
+# 恢复备份的配置
+cp -r /root/network-backup-&lt;日期&gt;/* /etc/NetworkManager/system-connections/
+nmcli connection reload
+systemctl restart NetworkManager
+```
+
+### 问题 2: virt-host-validate 显示 FAIL
+
+**症状**: 某些项目显示 FAIL
+
+**常见 FAIL 项目及解决方案**:
+
+**FAIL: /dev/kvm 不存在或不可访问**
+```bash
+# 加载 KVM 模块
+modprobe kvm
+modprobe kvm_amd  # 或 kvm_intel
+
+# 永久加载
+echo "kvm" &gt;&gt; /etc/modules-load.d/kvm.conf
+echo "kvm_amd" &gt;&gt; /etc/modules-load.d/kvm.conf  # 或 kvm_intel
+```
+
+**FAIL: cgroup 控制器不支持**
+```bash
+# 检查 cgroup v2
+mount | grep cgroup
+
+# 如果需要，在 GRUB 中启用 cgroup v1
+# 编辑 /etc/default/grub，添加:
+# GRUB_CMDLINE_LINUX="... systemd.unified_cgroup_hierarchy=0"
+# 然后:
+grub2-mkconfig -o /boot/grub2/grub.cfg
+reboot
+```
+
+### 问题 3: 虚拟机无法获取 IP 地址
+
+**症状**: 虚拟机启动后无法连接网络
+
+**解决方案**:
+```bash
+# 检查网桥是否工作
+brctl show
+# 或
+bridge link show
+
+# 确保 br0 已连接到物理网卡
+ip link show br0
+
+# 检查防火墙
+firewall-cmd --zone=public --list-all
+
+# 确保 br0 在正确的 zone
+firewall-cmd --get-zone-of-interface=br0
+
+# 如果不在 public zone，添加它
+firewall-cmd --permanent --zone=public --add-interface=br0
+firewall-cmd --reload
+```
+
+### 问题 4: chris 用户无法管理虚拟机
+
+**症状**: 使用 chris 用户执行 virsh 命令时权限被拒绝
+
+**解决方案**:
+```bash
+# 确保用户在正确的组
+sudo usermod -aG libvirt,kvm chris
+
+# 让用户重新登录以应用组更改
+# 或使用 newgrp
+newgrp libvirt
+
+# 检查 libvirt socket 权限
+ls -l /var/run/libvirt/libvirt-sock
+
+# 应该是:
+# srwxrwx--- 1 root libvirt ... /var/run/libvirt/libvirt-sock
+```
+
+### 问题 5: 网桥模式下虚拟机无法访问外网
+
+**症状**: 虚拟机可以 ping 通网关但无法访问外网
+
+**解决方案**:
+```bash
+# 1. 检查 IP 转发
+cat /proc/sys/net/ipv4/ip_forward
+# 应该是 1
+
+# 如果是 0，启用它
+echo 1 &gt; /proc/sys/net/ipv4/ip_forward
+# 永久启用
+echo "net.ipv4.ip_forward = 1" &gt;&gt; /etc/sysctl.conf
+sysctl -p
+
+# 2. 检查防火墙 masquerade
+firewall-cmd --query-masquerade
+# 如果是 no，启用它
+firewall-cmd --permanent --add-masquerade
+firewall-cmd --reload
+
+# 3. 检查虚拟机的网关配置
+# 在虚拟机内检查:
+# ip route show
+# 确保默认网关指向 192.168.71.1
+```
+
+---
+
+## 🎯 下一步
+
+恭喜！您已经成功搭建了 KVM 虚拟化环境。
+
+现在您可以继续下一步：
+
+👉 **[03-storage-expansion.md - 磁盘空间扩展](#section-3)**
+
+---
+
+## 💡 知识补充
+
+### Bridge 模式 vs NAT 模式
+
+| 特性 | Bridge 模式 | NAT 模式 |
+|------|-------------|----------|
+| IP 地址 | 与宿主机同网段 (192.168.71.x) | 独立网段 (192.168.122.x) |
+| 局域网访问 | 可以直接访问虚拟机 | 需要端口转发 |
+| 配置复杂度 | ⭐⭐⭐☆☆ | ⭐⭐☆☆☆ |
+| 性能 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐☆ |
+| 适用场景 | 服务器虚拟机（推荐） | 测试和开发 |
+
+**为什么选择 Bridge 模式？**
+- NAS、旁路由等需要局域网设备直接访问
+- 虚拟机就像物理机一样工作在局域网中
+- 便于管理和监控
+
+### KVM 性能优化建议
+
+1. **使用 virtio 驱动**: 网络和磁盘都使用 virtio，性能接近物理机
+2. **CPU 绑定**: 对于生产虚拟机，可以绑定特定 CPU 核心
+3. **大页内存**: 对于内存密集型应用，启用大页内存
+4. **磁盘缓存策略**: 根据需求选择合适的缓存模式
+
+这些优化将在后续的虚拟机配置文档中详细说明。
+
+### 常用 virsh 命令速查
+
+```bash
+# 虚拟机管理
+virsh list --all              # 列出所有虚拟机
+virsh start &lt;vm-name&gt;         # 启动虚拟机
+virsh shutdown &lt;vm-name&gt;      # 关闭虚拟机（优雅关机）
+virsh destroy &lt;vm-name&gt;       # 强制关闭虚拟机
+virsh reboot &lt;vm-name&gt;        # 重启虚拟机
+virsh autostart &lt;vm-name&gt;     # 设置开机自启
+virsh autostart --disable &lt;vm-name&gt;  # 禁用开机自启
+
+# 虚拟机信息
+virsh dominfo &lt;vm-name&gt;       # 查看虚拟机详细信息
+virsh domstats &lt;vm-name&gt;      # 查看虚拟机统计信息
+virsh vcpuinfo &lt;vm-name&gt;      # 查看 vCPU 信息
+
+# 网络管理
+virsh net-list --all          # 列出所有网络
+virsh net-info &lt;net-name&gt;     # 查看网络信息
+virsh net-start &lt;net-name&gt;    # 启动网络
+virsh net-autostart &lt;net-name&gt;  # 设置网络自启
+
+# 存储管理
+virsh pool-list --all         # 列出所有存储池
+virsh vol-list &lt;pool-name&gt;    # 列出存储池中的卷
+virsh pool-refresh &lt;pool-name&gt;  # 刷新存储池
+
+# 控制台连接
+virsh console &lt;vm-name&gt;       # 连接到虚拟机控制台
+# 按 Ctrl+] 退出控制台
+```
+
+
+
+
+---
+
+
+
+# 03 - 磁盘空间扩展
+
+## 📋 本文档内容
+
+本文档将指导您将 2TB SSD 上剩余的约 1.75TB 未分配空间配置为 KVM 虚拟化和 NAS 使用，包括：
+
+- ✅ 当前磁盘状态检查
+- ✅ 存储规划方案（推荐配置）
+- ✅ 创建新分区
+- ✅ 配置 LVM thin pool (1.2TB 虚拟机存储)
+- ✅ 配置 NAS 数据卷 (500GB 独立存储)
+- ✅ 配置 KVM 存储池
+- ✅ 一键自动化脚本
+- ✅ 验证和测试
+
+**前置条件**: 已完成 [02-kvm-setup.md](#section-2)  
+**预计耗时**: 20 分钟  
+**难度**: ⭐⭐⭐⭐☆
+
+⚠️ **重要警告**: 本文档涉及磁盘分区操作，操作前请确保理解每个步骤。虽然这是新系统，但错误操作可能导致数据丢失。
+
+---
+
+## 📊 步骤 1: 检查当前磁盘状态
+
+### 1.1 查看磁盘和分区信息
+
+```bash
+sudo su -
+
+# 查看所有块设备
+lsblk
+
+# 查看详细分区信息
+fdisk -l
+
+# 查看 LVM 信息
+pvdisplay    # 物理卷
+vgdisplay    # 卷组
+lvdisplay    # 逻辑卷
+
+# 查看文件系统使用情况
+df -h
+```
+
+### 1.2 创建磁盘状态报告脚本
+
+```bash
+cat &gt; /root/check-disk-status.sh &lt;&lt;'EOF'
+#!/bin/bash
+
+echo "========================================="
+echo "       当前磁盘状态报告"
+echo "========================================="
+echo ""
+
+echo "--- 块设备概览 ---"
+lsblk -o NAME,SIZE,TYPE,FSTYPE,MOUNTPOINT
+echo ""
+
+echo "--- 磁盘分区详情 ---"
+parted /dev/nvme0n1 print 2&gt;/dev/null || fdisk -l /dev/nvme0n1 2&gt;/dev/null || \
+    parted /dev/sda print 2&gt;/dev/null || fdisk -l /dev/sda 2&gt;/dev/null
+echo ""
+
+echo "--- LVM 物理卷 ---"
+pvdisplay -C
+echo ""
+
+echo "--- LVM 卷组 ---"
+vgdisplay -C
+echo ""
+
+echo "--- LVM 逻辑卷 ---"
+lvdisplay -C
+echo ""
+
+echo "--- 文件系统使用 ---"
+df -h | grep -E 'Filesystem|^/dev'
+echo ""
+
+echo "--- 计算未分配空间 ---"
+DEVICE=$(lsblk -ndo NAME,TYPE | grep disk | head -1 | awk '{print $1}')
+DEVICE="/dev/$DEVICE"
+TOTAL_SIZE=$(lsblk -bdn -o SIZE $DEVICE)
+USED_SIZE=$(parted $DEVICE unit B print free 2&gt;/dev/null | grep -E '^\s+[0-9]' | awk '{print $3}' | sed 's/B//' | awk '{sum+=$1} END {print sum}')
+FREE_SIZE=$((TOTAL_SIZE - USED_SIZE))
+FREE_GB=$((FREE_SIZE / 1024 / 1024 / 1024))
+
+echo "磁盘设备: $DEVICE"
+echo "总容量: $((TOTAL_SIZE / 1024 / 1024 / 1024)) GB"
+echo "未分配空间: 约 ${FREE_GB} GB"
+echo ""
+
+echo "========================================="
+EOF
+
+chmod +x /root/check-disk-status.sh
+```
+
+### 1.3 运行状态检查
+
+```bash
+/root/check-disk-status.sh
+```
+
+根据输出，记录您的磁盘设备名称（通常是 `/dev/nvme0n1` 或 `/dev/sda`）。
+
+---
+
+## 📐 步骤 2: 存储规划方案
+
+### 2.1 推荐的存储架构
+
+基于您的需求（4 个虚拟机 + NAS），推荐以下分配：
+
+```
+致态 2TB NVMe SSD (约 1.86TB 可用)
+│
+├─ 已分配 (~110GB)
+│  ├─ /boot (1GB)
+│  ├─ / (root, ~100GB)
+│  └─ swap (根据内存大小)
+│
+└─ 新分区 (~1.75TB) ← 我们要配置的
+   │
+   ├─ vg_kvm (LVM 卷组)
+   │  │
+   │  ├─ kvm_thin_pool (LVM thin pool, 1.2TB)
+   │  │  └─ 虚拟机磁盘 (qcow2/raw)
+   │  │     ├─ python-dev: 80GB (qcow2)
+   │  │     ├─ web-app: 100GB (qcow2)
+   │  │     ├─ router: 20GB (qcow2)
+   │  │     ├─ nas-system: 30GB (raw)
+   │  │     └─ 预留: ~970GB (未来扩展)
+   │  │
+   │  └─ lv_nas_data (LVM 逻辑卷, 500GB)
+   │     └─ /data/nas (XFS, 供 NAS VM 使用)
+   │
+   └─ 未分配 (~50GB) ← 应急预留
+```
+
+### 2.2 为什么这样规划？
+
+**LVM thin pool 的优势**:
+- **过量分配**: 可以创建总容量超过物理空间的虚拟磁盘
+- **按需使用**: 实际只占用写入的数据空间
+- **快照高效**: 创建快照几乎不占用额外空间
+- **统一管理**: 所有虚拟机磁盘在一个池中
+
+**NAS 数据独立存储**:
+- **性能优化**: 独立 LVM 卷，避免 thin pool 开销
+- **便于备份**: 可以单独挂载和备份
+- **灵活共享**: 通过 virtio-fs 共享给 NAS VM，性能接近原生
+
+---
+
+## 🔨 步骤 3: 创建新分区
+
+### 3.1 确定磁盘设备
+
+```bash
+# 查找主磁盘设备
+DISK_DEVICE=$(lsblk -ndo NAME,TYPE | grep disk | head -1 | awk '{print "/dev/"$1}')
+echo "检测到磁盘设备: $DISK_DEVICE"
+
+# 验证这是正确的设备
+lsblk $DISK_DEVICE
+```
+
+⚠️ **重要**: 确认 $DISK_DEVICE 是您的 2TB SSD，不是其他设备！
+
+### 3.2 使用 parted 创建新分区
+
+```bash
+# 检查当前分区表类型
+parted $DISK_DEVICE print
+
+# 创建新分区（使用剩余所有空间）
+# 注意：这会创建一个大分区，我们预留 50GB 的方法是不使用 100% 而是 -50GB
+parted $DISK_DEVICE mkpart primary ext4 110GB -50GB
+
+# 如果提示分区未对齐，选择 Ignore 或 Yes
+
+# 查看新分区
+parted $DISK_DEVICE print
+lsblk $DISK_DEVICE
+```
+
+### 3.3 获取新分区名称
+
+```bash
+# 列出分区
+lsblk $DISK_DEVICE
+
+# 新分区通常是最后一个，例如:
+# /dev/nvme0n1p3 (NVMe SSD)
+# /dev/sda3 (SATA SSD)
+
+# 设置变量（根据实际情况修改）
+NEW_PARTITION="${DISK_DEVICE}p3"  # NVMe
+# 或
+# NEW_PARTITION="${DISK_DEVICE}3"  # SATA
+
+# 验证
+ls -l $NEW_PARTITION
+```
+
+---
+
+## 🗄️ 步骤 4: 配置 LVM
+
+### 4.1 创建物理卷 (PV)
+
+```bash
+# 创建物理卷
+pvcreate $NEW_PARTITION
+
+# 验证
+pvdisplay $NEW_PARTITION
+pvs
+```
+
+### 4.2 创建卷组 (VG)
+
+```bash
+# 创建名为 vg_kvm 的卷组
+vgcreate vg_kvm $NEW_PARTITION
+
+# 验证
+vgdisplay vg_kvm
+vgs
+```
+
+您应该看到约 1.7TB 的可用空间。
+
+### 4.3 创建 thin pool (虚拟机存储池)
+
+```bash
+# 创建 1.2TB 的 thin pool
+lvcreate -L 1200G --thinpool kvm_thin_pool vg_kvm
+
+# 优化 thin pool 性能（禁用零初始化）
+lvchange --zero n vg_kvm/kvm_thin_pool
+
+# 配置 thin pool 自动扩展（当使用率超过 80% 时）
+cat &gt;&gt; /etc/lvm/lvm.conf &lt;&lt;'EOF'
+
+# Thin pool auto-extend settings
+activation {
+    thin_pool_autoextend_threshold = 80
+    thin_pool_autoextend_percent = 20
+}
+EOF
+
+# 验证
+lvdisplay vg_kvm/kvm_thin_pool
+lvs -a vg_kvm
+```
+
+### 4.4 创建 NAS 数据卷
+
+```bash
+# 创建 500GB 的逻辑卷
+lvcreate -L 500G -n lv_nas_data vg_kvm
+
+# 格式化为 XFS（适合大文件存储）
+mkfs.xfs /dev/vg_kvm/lv_nas_data
+
+# 创建挂载点
+mkdir -p /data/nas
+
+# 挂载
+mount /dev/vg_kvm/lv_nas_data /data/nas
+
+# 设置权限
+chmod 755 /data/nas
+
+# 配置开机自动挂载
+echo "/dev/vg_kvm/lv_nas_data /data/nas xfs defaults 0 0" &gt;&gt; /etc/fstab
+
+# 验证挂载
+df -h /data/nas
+mount | grep nas
+```
+
+### 4.5 设置 SELinux 上下文
+
+```bash
+# 为 NAS 数据目录设置 SELinux 上下文
+semanage fcontext -a -t virt_image_t '/data/nas(/.*)?'
+restorecon -Rv /data/nas
+```
+
+---
+
+## 🎯 步骤 5: 配置 KVM 存储池
+
+### 5.1 配置基于 LVM thin 的虚拟机存储池
+
+```bash
+# 定义 LVM thin 存储池
+virsh pool-define-as kvm_pool logical \
+    --source-name vg_kvm \
+    --target /dev/vg_kvm
+
+# 构建存储池
+virsh pool-build kvm_pool
+
+# 启动存储池
+virsh pool-start kvm_pool
+
+# 设置自动启动
+virsh pool-autostart kvm_pool
+
+# 验证
+virsh pool-list --all
+virsh pool-info kvm_pool
+```
+
+### 5.2 配置 NAS 数据目录存储池
+
+```bash
+# 定义基于目录的存储池
+virsh pool-define-as nas_data_pool dir --target /data/nas
+
+# 启动
+virsh pool-start nas_data_pool
+
+# 设置自动启动
+virsh pool-autostart nas_data_pool
+
+# 验证
+virsh pool-list --all
+virsh pool-info nas_data_pool
+```
+
+---
+
+## 🤖 步骤 6: 一键自动化脚本
+
+### 6.1 创建完整的自动化配置脚本
+
+```bash
+cat &gt; /root/setup-storage-auto.sh &lt;&lt;'EOF'
+#!/bin/bash
+
+# 存储扩展自动化脚本
+# 用途: 自动配置 KVM 虚拟机存储和 NAS 数据存储
+
+set -e  # 遇到错误立即退出
+
+# 颜色定义
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo -e "${GREEN}=========================================${NC}"
+echo -e "${GREEN}     KVM 存储扩展自动化配置脚本${NC}"
+echo -e "${GREEN}=========================================${NC}"
+echo ""
+
+# 检查是否以 root 运行
+if [ "$EUID" -ne 0 ]; then
+    echo -e "${RED}错误: 请以 root 用户运行此脚本${NC}"
+    exit 1
+fi
+
+# 配置参数
+THIN_POOL_SIZE="1200G"  # thin pool 大小
+NAS_DATA_SIZE="500G"    # NAS 数据卷大小
+VG_NAME="vg_kvm"
+THIN_POOL_NAME="kvm_thin_pool"
+NAS_LV_NAME="lv_nas_data"
+NAS_MOUNT_POINT="/data/nas"
+
+echo -e "${YELLOW}配置参数:${NC}"
+echo "  - Thin Pool 大小: $THIN_POOL_SIZE"
+echo "  - NAS 数据卷大小: $NAS_DATA_SIZE"
+echo "  - 卷组名称: $VG_NAME"
+echo "  - NAS 挂载点: $NAS_MOUNT_POINT"
+echo ""
+
+# 步骤 1: 检测磁盘
+echo -e "${GREEN}[1/8] 检测磁盘设备...${NC}"
+DISK_DEVICE=$(lsblk -ndo NAME,TYPE | grep disk | head -1 | awk '{print "/dev/"$1}')
+echo "检测到磁盘: $DISK_DEVICE"
+lsblk $DISK_DEVICE
+echo ""
+
+read -p "确认这是正确的磁盘设备吗? (yes/no): " confirm
+if [ "$confirm" != "yes" ]; then
+    echo -e "${RED}操作已取消${NC}"
+    exit 1
+fi
+
+# 步骤 2: 查找未分配空间
+echo -e "${GREEN}[2/8] 分析未分配空间...${NC}"
+parted $DISK_DEVICE print free
+echo ""
+
+# 步骤 3: 创建新分区
+echo -e "${GREEN}[3/8] 创建新分区...${NC}"
+LAST_PARTITION=$(parted $DISK_DEVICE print | grep '^ ' | tail -1 | awk '{print $1}')
+echo "最后一个分区编号: $LAST_PARTITION"
+
+# 获取最后一个分区的结束位置
+LAST_END=$(parted $DISK_DEVICE unit GB print | grep "^ $LAST_PARTITION" | awk '{print $3}' | sed 's/GB//')
+echo "最后分区结束于: ${LAST_END}GB"
+
+# 创建新分区（预留 50GB）
+echo "创建新分区从 ${LAST_END}GB 到 -50GB..."
+parted -a optimal $DISK_DEVICE mkpart primary ext4 ${LAST_END}GB -- -50GB
+
+# 刷新分区表
+partprobe $DISK_DEVICE
+sleep 2
+
+# 确定新分区名称
+if [[ $DISK_DEVICE == *"nvme"* ]]; then
+    NEW_PARTITION="${DISK_DEVICE}p$((LAST_PARTITION + 1))"
+else
+    NEW_PARTITION="${DISK_DEVICE}$((LAST_PARTITION + 1))"
+fi
+
+echo "新分区: $NEW_PARTITION"
+ls -l $NEW_PARTITION || (echo -e "${RED}新分区未创建成功${NC}" &amp;&amp; exit 1)
+echo ""
+
+# 步骤 4: 创建 LVM 物理卷
+echo -e "${GREEN}[4/8] 创建 LVM 物理卷...${NC}"
+pvcreate $NEW_PARTITION
+pvdisplay $NEW_PARTITION
+echo ""
+
+# 步骤 5: 创建卷组
+echo -e "${GREEN}[5/8] 创建卷组 $VG_NAME...${NC}"
+vgcreate $VG_NAME $NEW_PARTITION
+vgdisplay $VG_NAME
+echo ""
+
+# 步骤 6: 创建 thin pool
+echo -e "${GREEN}[6/8] 创建 thin pool...${NC}"
+lvcreate -L $THIN_POOL_SIZE --thinpool $THIN_POOL_NAME $VG_NAME
+lvchange --zero n $VG_NAME/$THIN_POOL_NAME
+lvdisplay $VG_NAME/$THIN_POOL_NAME
+echo ""
+
+# 步骤 7: 创建 NAS 数据卷
+echo -e "${GREEN}[7/8] 创建 NAS 数据卷...${NC}"
+lvcreate -L $NAS_DATA_SIZE -n $NAS_LV_NAME $VG_NAME
+mkfs.xfs /dev/$VG_NAME/$NAS_LV_NAME
+
+# 挂载 NAS 数据卷
+mkdir -p $NAS_MOUNT_POINT
+mount /dev/$VG_NAME/$NAS_LV_NAME $NAS_MOUNT_POINT
+chmod 755 $NAS_MOUNT_POINT
+
+# 添加到 fstab
+if ! grep -q "$NAS_MOUNT_POINT" /etc/fstab; then
+    echo "/dev/$VG_NAME/$NAS_LV_NAME $NAS_MOUNT_POINT xfs defaults 0 0" &gt;&gt; /etc/fstab
+fi
+
+df -h $NAS_MOUNT_POINT
+echo ""
+
+# 步骤 8: 配置 KVM 存储池
+echo -e "${GREEN}[8/8] 配置 KVM 存储池...${NC}"
+
+# LVM thin 存储池
+if ! virsh pool-list --all | grep -q kvm_pool; then
+    virsh pool-define-as kvm_pool logical --source-name $VG_NAME --target /dev/$VG_NAME
+    virsh pool-build kvm_pool
+    virsh pool-start kvm_pool
+    virsh pool-autostart kvm_pool
+fi
+
+# NAS 数据目录存储池
+if ! virsh pool-list --all | grep -q nas_data_pool; then
+    virsh pool-define-as nas_data_pool dir --target $NAS_MOUNT_POINT
+    virsh pool-start nas_data_pool
+    virsh pool-autostart nas_data_pool
+fi
+
+# 设置 SELinux 上下文
+if command -v semanage &amp;&gt; /dev/null; then
+    semanage fcontext -a -t virt_image_t "${NAS_MOUNT_POINT}(/.*)?" 2&gt;/dev/null || true
+    restorecon -Rv $NAS_MOUNT_POINT
+fi
+
+virsh pool-list --all
+echo ""
+
+echo -e "${GREEN}=========================================${NC}"
+echo -e "${GREEN}     配置完成!${NC}"
+echo -e "${GREEN}=========================================${NC}"
+echo ""
+echo "存储配置摘要:"
+echo "  - 卷组: $VG_NAME"
+echo "  - Thin Pool: $THIN_POOL_NAME ($(lvs --noheadings -o lv_size $VG_NAME/$THIN_POOL_NAME | xargs))"
+echo "  - NAS 数据卷: $NAS_LV_NAME ($(lvs --noheadings -o lv_size $VG_NAME/$NAS_LV_NAME | xargs))"
+echo "  - NAS 挂载点: $NAS_MOUNT_POINT"
+echo ""
+echo "KVM 存储池:"
+echo "  - kvm_pool: LVM thin pool 用于虚拟机磁盘"
+echo "  - nas_data_pool: 目录存储池用于 NAS 数据"
+echo ""
+echo "下一步: 请查看 04-vm-management.md 创建虚拟机"
+EOF
+
+chmod +x /root/setup-storage-auto.sh
+```
+
+### 6.2 运行自动化脚本（可选）
+
+⚠️ **注意**: 如果您已经手动完成了步骤 3-5，跳过此步骤。
+
+```bash
+# 如果您想使用自动化脚本，运行:
+# /root/setup-storage-auto.sh
+```
+
+---
+
+## ✅ 步骤 7: 验证配置
+
+### 7.1 创建验证脚本
+
+```bash
+cat &gt; /root/verify-storage.sh &lt;&lt;'EOF'
+#!/bin/bash
+
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+echo "========================================="
+echo "       存储配置验证"
+echo "========================================="
+echo ""
+
+check_pass() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+check_fail() {
+    echo -e "${RED}✗${NC} $1"
+}
+
+check_info() {
+    echo -e "${YELLOW}ℹ${NC} $1"
+}
+
+# 1. LVM 卷组
+echo "1. 检查 LVM 卷组..."
+if vgs vg_kvm &amp;&gt;/dev/null; then
+    VG_SIZE=$(vgs --noheadings -o vg_size vg_kvm | xargs)
+    VG_FREE=$(vgs --noheadings -o vg_free vg_kvm | xargs)
+    check_pass "卷组 vg_kvm 存在 (大小: $VG_SIZE, 可用: $VG_FREE)"
+else
+    check_fail "卷组 vg_kvm 不存在"
+    exit 1
+fi
+
+# 2. Thin pool
+echo "2. 检查 thin pool..."
+if lvs vg_kvm/kvm_thin_pool &amp;&gt;/dev/null; then
+    POOL_SIZE=$(lvs --noheadings -o lv_size vg_kvm/kvm_thin_pool | xargs)
+    POOL_DATA=$(lvs --noheadings -o data_percent vg_kvm/kvm_thin_pool | xargs)
+    check_pass "Thin pool 存在 (大小: $POOL_SIZE, 使用率: $POOL_DATA)"
+else
+    check_fail "Thin pool 不存在"
+fi
+
+# 3. NAS 数据卷
+echo "3. 检查 NAS 数据卷..."
+if lvs vg_kvm/lv_nas_data &amp;&gt;/dev/null; then
+    NAS_SIZE=$(lvs --noheadings -o lv_size vg_kvm/lv_nas_data | xargs)
+    check_pass "NAS 数据卷存在 (大小: $NAS_SIZE)"
+else
+    check_fail "NAS 数据卷不存在"
+fi
+
+# 4. NAS 挂载
+echo "4. 检查 NAS 挂载..."
+if mount | grep -q '/data/nas'; then
+    NAS_USAGE=$(df -h /data/nas | tail -1 | awk '{print $5 " 已用，剩余 " $4}')
+    check_pass "NAS 已挂载到 /data/nas ($NAS_USAGE)"
+else
+    check_fail "NAS 未挂载"
+fi
+
+if grep -q '/data/nas' /etc/fstab; then
+    check_pass "NAS 已添加到 /etc/fstab (开机自动挂载)"
+else
+    check_fail "NAS 未添加到 /etc/fstab"
+fi
+
+# 5. KVM 存储池
+echo "5. 检查 KVM 存储池..."
+if virsh pool-list --all | grep -q kvm_pool; then
+    KVM_POOL_STATE=$(virsh pool-list --all | grep kvm_pool | awk '{print $2}')
+    if [ "$KVM_POOL_STATE" == "active" ] || [ "$KVM_POOL_STATE" == "活动" ]; then
+        check_pass "kvm_pool 存储池活动"
+    else
+        check_fail "kvm_pool 存储池不活动"
+    fi
+else
+    check_fail "kvm_pool 存储池不存在"
+fi
+
+if virsh pool-list --all | grep -q nas_data_pool; then
+    NAS_POOL_STATE=$(virsh pool-list --all | grep nas_data_pool | awk '{print $2}')
+    if [ "$NAS_POOL_STATE" == "active" ] || [ "$NAS_POOL_STATE" == "活动" ]; then
+        check_pass "nas_data_pool 存储池活动"
+    else
+        check_fail "nas_data_pool 存储池不活动"
+    fi
+else
+    check_fail "nas_data_pool 存储池不存在"
+fi
+
+echo ""
+echo "========================================="
+echo "       详细信息"
+echo "========================================="
+echo ""
+echo "--- LVM 逻辑卷 ---"
+lvs vg_kvm
+echo ""
+echo "--- KVM 存储池 ---"
+virsh pool-list --all
+echo ""
+echo "--- 磁盘使用情况 ---"
+df -h | grep -E 'Filesystem|vg_kvm'
+echo ""
+echo "========================================="
+echo "验证完成!"
+echo "========================================="
+EOF
+
+chmod +x /root/verify-storage.sh
+```
+
+### 7.2 运行验证
+
+```bash
+/root/verify-storage.sh
+```
+
+### 7.3 测试创建虚拟磁盘
+
+```bash
+# 测试在 thin pool 中创建 thin volume
+lvcreate -V 100G --thinpool kvm_thin_pool -n test_thin_vol vg_kvm
+
+# 查看
+lvs vg_kvm
+lvdisplay vg_kvm/test_thin_vol
+
+# 删除测试卷
+lvremove -f vg_kvm/test_thin_vol
+
+# 测试通过 virsh 创建虚拟磁盘
+virsh vol-create-as kvm_pool test-disk.qcow2 50G --format qcow2
+
+# 查看
+virsh vol-list kvm_pool
+
+# 删除测试磁盘
+virsh vol-delete test-disk.qcow2 kvm_pool
+
+echo "测试成功！"
+```
+
+---
+
+## 📊 步骤 8: 容量规划和监控
+
+### 8.1 创建容量规划文档
+
+```bash
+cat &gt; /root/storage-capacity-plan.txt &lt;&lt;'EOF'
+========================================
+        存储容量规划
+========================================
+
+总存储: 约 1.75TB (vg_kvm)
+
+已分配:
+  - kvm_thin_pool:  1200GB (虚拟机存储)
+  - lv_nas_data:     500GB (NAS 数据)
+  - 总计:           1700GB
+
+未分配: 约 50GB (预留)
+
+========================================
+虚拟机磁盘分配 (在 thin pool 中):
+========================================
+
+1. python-dev
+   - 系统盘: 80GB (qcow2)
+   - 实际占用: 约 10-20GB (取决于安装的软件)
+
+2. web-app
+   - 系统盘: 100GB (qcow2)
+   - 实际占用: 约 15-30GB
+
+3. router (旁路由)
+   - 系统盘: 20GB (qcow2)
+   - 实际占用: 约 2-5GB
+
+4. nas
+   - 系统盘: 30GB (raw, 从 thin pool)
+   - 实际占用: 30GB (raw 格式立即占用全部空间)
+   - 数据盘: 使用 /data/nas (500GB 独立卷)
+
+虚拟磁盘总分配: 230GB
+Thin pool 总容量: 1200GB
+可用于扩展或新 VM: 约 970GB
+
+========================================
+Thin Pool 特性:
+========================================
+
+- 过量分配: 可以创建总和 &gt; 1200GB 的虚拟磁盘
+- 实际使用: 只占用实际写入的数据空间
+- 例如: 创建 5 个 100GB 的虚拟磁盘 (共 500GB)
+        如果每个只用了 20GB，实际只占用 100GB
+
+注意: 需要监控 thin pool 使用率，避免真正用满
+
+========================================
+监控命令:
+========================================
+
+# 查看 thin pool 使用率
+lvs -a vg_kvm
+
+# 查看详细信息
+lvdisplay vg_kvm/kvm_thin_pool
+
+# 查看所有虚拟磁盘
+virsh vol-list kvm_pool
+
+# 查看 NAS 数据使用
+df -h /data/nas
+
+========================================
+扩容指南:
+========================================
+
+如果 thin pool 不够用:
+1. 扩展 thin pool
+   lvextend -L +100G vg_kvm/kvm_thin_pool
+
+如果 NAS 数据不够用:
+1. 卸载 NAS
+   umount /data/nas
+2. 扩展逻辑卷
+   lvextend -L +100G vg_kvm/lv_nas_data
+3. 扩展文件系统
+   xfs_growfs /data/nas
+4. 重新挂载
+   mount /data/nas
+
+如果卷组空间不够:
+1. 使用未分配的 50GB
+   parted /dev/nvmeXnY mkpart primary ext4 YYYYgb 100%
+   pvcreate /dev/nvmeXnYpZ
+   vgextend vg_kvm /dev/nvmeXnYpZ
+EOF
+
+cat /root/storage-capacity-plan.txt
+```
+
+### 8.2 创建监控脚本
+
+```bash
+cat &gt; /usr/local/bin/storage-monitor &lt;&lt;'EOF'
+#!/bin/bash
+
+echo "========================================="
+echo "       存储使用监控"
+echo "========================================="
+date
+echo ""
+
+echo "--- LVM 卷组状态 ---"
+vgs vg_kvm
+echo ""
+
+echo "--- Thin Pool 使用情况 ---"
+lvs -a vg_kvm | grep -E 'LV|thin'
+echo ""
+
+POOL_DATA=$(lvs --noheadings -o data_percent vg_kvm/kvm_thin_pool | xargs | sed 's/%//')
+POOL_META=$(lvs --noheadings -o metadata_percent vg_kvm/kvm_thin_pool | xargs | sed 's/%//')
+
+echo "Thin Pool 数据使用率: ${POOL_DATA}%"
+echo "Thin Pool 元数据使用率: ${POOL_META}%"
+
+if (( $(echo "$POOL_DATA &gt; 80" | bc -l) )); then
+    echo "⚠️  警告: Thin pool 数据使用率超过 80%!"
+fi
+
+if (( $(echo "$POOL_META &gt; 80" | bc -l) )); then
+    echo "⚠️  警告: Thin pool 元数据使用率超过 80%!"
+fi
+echo ""
+
+echo "--- NAS 数据卷使用情况 ---"
+df -h /data/nas
+echo ""
+
+echo "--- 虚拟机磁盘列表 ---"
+virsh vol-list kvm_pool 2&gt;/dev/null || echo "kvm_pool 中暂无虚拟磁盘"
+echo ""
+
+echo "========================================="
+EOF
+
+chmod +x /usr/local/bin/storage-monitor
+```
+
+### 8.3 运行监控
+
+```bash
+storage-monitor
+```
+
+---
+
+## 📝 完成检查清单
+
+完成本文档后，您应该已经配置好：
+
+- [x] 创建了新的磁盘分区（约 1.7TB）
+- [x] 配置了 LVM 物理卷和卷组 (vg_kvm)
+- [x] 创建了 LVM thin pool (1.2TB)
+- [x] 创建了 NAS 数据逻辑卷 (500GB)
+- [x] NAS 数据卷已挂载到 /data/nas
+- [x] 配置了 KVM 存储池 (kvm_pool)
+- [x] 配置了 NAS 数据存储池 (nas_data_pool)
+- [x] 验证脚本显示所有项目正常
+- [x] 预留了约 50GB 应急空间
+
+---
+
+## 🔍 故障排查
+
+### 问题 1: parted 创建分区失败
+
+**症状**: 提示"分区未对齐"或"无法创建分区"
+
+**解决方案**:
+```bash
+# 使用 -a optimal 参数
+parted -a optimal /dev/nvme0n1 mkpart primary ext4 110GB -50GB
+
+# 或者忽略对齐警告
+# 在 parted 交互模式中选择 "Ignore"
+```
+
+### 问题 2: thin pool 创建失败
+
+**症状**: lvcreate 提示空间不足
+
+**解决方案**:
+```bash
+# 检查卷组可用空间
+vgs vg_kvm
+
+# 如果可用空间小于 1200GB，减小 thin pool 大小
+lvcreate -L 1000G --thinpool kvm_thin_pool vg_kvm
+
+# 或使用百分比
+lvcreate -l 70%FREE --thinpool kvm_thin_pool vg_kvm
+```
+
+### 问题 3: NAS 数据卷无法挂载
+
+**症状**: mount 命令失败
+
+**解决方案**:
+```bash
+# 检查逻辑卷是否存在
+lvs vg_kvm/lv_nas_data
+
+# 检查文件系统
+blkid /dev/vg_kvm/lv_nas_data
+
+# 如果未格式化，重新格式化
+mkfs.xfs -f /dev/vg_kvm/lv_nas_data
+
+# 检查挂载点
+ls -ld /data/nas
+
+# 尝试手动挂载
+mount -t xfs /dev/vg_kvm/lv_nas_data /data/nas
+
+# 查看错误信息
+dmesg | tail -20
+```
+
+### 问题 4: KVM 存储池无法启动
+
+**症状**: virsh pool-start 失败
+
+**解决方案**:
+```bash
+# 查看详细错误
+virsh pool-start kvm_pool
+
+# 删除并重新创建
+virsh pool-destroy kvm_pool
+virsh pool-undefine kvm_pool
+virsh pool-define-as kvm_pool logical --source-name vg_kvm --target /dev/vg_kvm
+virsh pool-build kvm_pool
+virsh pool-start kvm_pool
+
+# 检查权限
+ls -l /dev/vg_kvm/
+
+# 检查 SELinux
+getenforce
+# 如果是 Enforcing，临时切换到 Permissive 测试
+setenforce 0
+virsh pool-start kvm_pool
+setenforce 1
+```
+
+### 问题 5: Thin pool 使用率异常增长
+
+**症状**: thin pool 快速填满
+
+**解决方案**:
+```bash
+# 查看哪个虚拟磁盘占用空间大
+lvs -a vg_kvm
+
+# 在虚拟机内执行 fstrim 释放空间
+# (在虚拟机内运行)
+sudo fstrim -av
+
+# 宿主机上检查 thin pool
+lvs -a vg_kvm/kvm_thin_pool
+
+# 如果确实需要更多空间，扩展 thin pool
+lvextend -L +100G vg_kvm/kvm_thin_pool
+```
+
+---
+
+## 🎯 下一步
+
+恭喜！您已经成功配置了存储架构。
+
+现在您可以继续下一步：
+
+👉 **[04-vm-management.md - 虚拟机创建和管理](#section-4)**
+
+---
+
+## 💡 知识补充
+
+### LVM Thin Provisioning 原理
+
+**传统 LVM**:
+- 创建 100GB 逻辑卷 → 立即占用 100GB 物理空间
+- 即使只写入 1GB 数据，也占用 100GB
+
+**Thin Provisioning**:
+- 创建 100GB thin volume → 几乎不占用物理空间
+- 写入 1GB 数据 → 占用约 1GB 物理空间
+- 写入多少，占用多少
+
+**优势**:
+- **过量分配**: 可以创建总和 &gt; 物理空间的虚拟磁盘
+- **节省空间**: 实际按需分配
+- **快照高效**: 快照只存储差异数据
+
+**注意事项**:
+- ⚠️ 必须监控使用率，避免真正用满导致 I/O 错误
+- ⚠️ 需要配置自动扩展策略
+- ⚠️ 性能略低于传统 LVM（5-10%）
+
+### qcow2 vs raw 格式选择
+
+| 特性 | qcow2 | raw |
+|------|-------|-----|
+| 空间占用 | 按需增长 | 立即占用全部 |
+| 性能 | 略低 5-10% | 最佳 |
+| 快照 | 原生支持 | 需要 LVM 快照 |
+| 压缩 | 支持 | 不支持 |
+| 兼容性 | KVM/QEMU 专用 | 通用格式 |
+| 推荐场景 | 开发、测试 VM | 生产、数据库 VM |
+
+**我们的选择**:
+- **python-dev, web-app, router**: qcow2（方便快照和克隆）
+- **nas 系统盘**: raw（更好的 I/O 性能）
+- **nas 数据**: 独立 LVM 卷（最佳性能和灵活性）
+
+### 存储性能优化建议
+
+1. **XFS vs Ext4 for NAS**:
+   - XFS: 大文件性能更好，支持在线扩展
+   - Ext4: 小文件性能更好，更成熟
+   - 推荐 NAS 使用 XFS
+
+2. **LVM 条带化** (如果有多块盘):
+   ```bash
+   lvcreate -L 1TB -i 2 -I 64 -n striped_vol vg_kvm
+   # -i 2: 使用 2 块盘条带化
+   # -I 64: 条带大小 64KB
+   ```
+
+3. **SSD TRIM 支持**:
+   ```bash
+   # 启用 discard (定期 TRIM)
+   lvchange --discards passdown vg_kvm/lv_nas_data
+   ```
+
+这些高级优化将在实际使用中根据性能需求调整。
+
+
+
+
+---
+
+
+
+# 04 - 虚拟机创建和管理
+
+## 📋 本文档内容
+
+本文档提供虚拟机创建和日常管理的实用脚本和工具，包括：
+
+- ✅ 虚拟机创建脚本
+- ✅ 虚拟机启动/停止管理
+- ✅ 资源分配策略  
+- ✅ 自动启动配置
+- ✅ 统一管理工具
+- ✅ 常用操作速查
+
+**前置条件**: 已完成 [03-storage-expansion.md](#section-3)  
+**预计耗时**: 15 分钟  
+**难度**: ⭐⭐⭐☆☆
+
+---
+
+## 🚀 快速创建虚拟机脚本
+
+### 创建通用VM创建脚本
+
+```bash
+sudo su -
+
+cat &gt; /usr/local/bin/create-vm &lt;&lt;'EOF'
+#!/bin/bash
+
+# 虚拟机创建脚本
+# 用法: create-vm &lt;vm-name&gt; &lt;ram-gb&gt; &lt;vcpus&gt; &lt;disk-gb&gt; &lt;disk-format&gt; &lt;iso-path&gt; &lt;static-ip&gt;
+
+set -e
+
+if [ $# -lt 7 ]; then
+    echo "用法: $0 &lt;vm-name&gt; &lt;ram-gb&gt; &lt;vcpus&gt; &lt;disk-gb&gt; &lt;format&gt; &lt;iso-path&gt; &lt;static-ip&gt;"
+    echo "示例: $0 python-dev 4 2 80 qcow2 /kvm/iso/ubuntu-22.04.iso 192.168.71.201"
+    exit 1
+fi
+
+VM_NAME=$1
+RAM_GB=$2
+VCPUS=$3
+DISK_GB=$4
+DISK_FORMAT=$5
+ISO_PATH=$6
+STATIC_IP=$7
+
+RAM_MB=$((RAM_GB * 1024))
+
+echo "========================================="
+echo "创建虚拟机: $VM_NAME"
+echo "========================================="
+echo "内存: ${RAM_GB}GB"
+echo "vCPU: $VCPUS"
+echo "磁盘: ${DISK_GB}GB ($DISK_FORMAT)"
+echo "ISO: $ISO_PATH"
+echo "IP地址: $STATIC_IP"
+echo ""
+
+# 检查ISO是否存在
+if [ ! -f "$ISO_PATH" ]; then
+    echo "错误: ISO文件不存在: $ISO_PATH"
+    exit 1
+fi
+
+# 创建虚拟磁盘
+if [ "$DISK_FORMAT" == "qcow2" ]; then
+    virsh vol-create-as kvm_pool ${VM_NAME}.qcow2 ${DISK_GB}G --format qcow2
+elif [ "$DISK_FORMAT" == "raw" ]; then
+    lvcreate -V ${DISK_GB}G --thinpool kvm_thin_pool -n ${VM_NAME} vg_kvm
+    DISK_PATH="/dev/vg_kvm/${VM_NAME}"
+else
+    echo "错误: 不支持的磁盘格式: $DISK_FORMAT"
+    exit 1
+fi
+
+# 确定磁盘路径
+if [ "$DISK_FORMAT" == "qcow2" ]; then
+    DISK_PATH="/dev/vg_kvm/kvm_thin_pool+${VM_NAME}.qcow2"
+fi
+
+# 创建虚拟机
+virt-install \
+    --name $VM_NAME \
+    --ram $RAM_MB \
+    --vcpus $VCPUS \
+    --disk path=$DISK_PATH,format=$DISK_FORMAT,bus=virtio \
+    --network bridge=br0,model=virtio \
+    --graphics vnc,listen=0.0.0.0 \
+    --cdrom $ISO_PATH \
+    --os-variant generic \
+    --noautoconsole
+
+echo ""
+echo "虚拟机 $VM_NAME 创建成功!"
+echo ""
+echo "下一步:"
+echo "1. 使用VNC客户端连接并安装系统"
+echo "   IP: 192.168.71.200"
+echo "   端口: $(virsh vncdisplay $VM_NAME | cut -d: -f2 | awk '{print 5900+$1}')"
+echo ""
+echo "2. 在系统安装时配置静态IP: $STATIC_IP"
+echo ""
+echo "3. 安装完成后执行:"
+echo "   virsh change-media $VM_NAME sda --eject"
+echo "   virsh autostart $VM_NAME"
+EOF
+
+chmod +x /usr/local/bin/create-vm
+```
+
+---
+
+## 📊 虚拟机管理工具
+
+### 创建VM管理脚本
+
+```bash
+cat &gt; /usr/local/bin/vm-manager &lt;&lt;'EOF'
+#!/bin/bash
+
+# 虚拟机管理工具
+
+cmd_list() {
+    echo "所有虚拟机状态:"
+    virsh list --all
+}
+
+cmd_start() {
+    if [ -z "$1" ]; then
+        echo "用法: vm-manager start &lt;vm-name&gt;"
+        return 1
+    fi
+    echo "启动虚拟机: $1"
+    virsh start $1
+}
+
+cmd_stop() {
+    if [ -z "$1" ]; then
+        echo "用法: vm-manager stop &lt;vm-name&gt;"
+        return 1
+    fi
+    echo "关闭虚拟机: $1"
+    virsh shutdown $1
+}
+
+cmd_force_stop() {
+    if [ -z "$1" ]; then
+        echo "用法: vm-manager force-stop &lt;vm-name&gt;"
+        return 1
+    fi
+    echo "强制关闭虚拟机: $1"
+    virsh destroy $1
+}
+
+cmd_restart() {
+    if [ -z "$1" ]; then
+        echo "用法: vm-manager restart &lt;vm-name&gt;"
+        return 1
+    fi
+    echo "重启虚拟机: $1"
+    virsh reboot $1
+}
+
+cmd_console() {
+    if [ -z "$1" ]; then
+        echo "用法: vm-manager console &lt;vm-name&gt;"
+        return 1
+    fi
+    echo "连接到虚拟机控制台 (Ctrl+] 退出):"
+    virsh console $1
+}
+
+cmd_info() {
+    if [ -z "$1" ]; then
+        echo "用法: vm-manager info &lt;vm-name&gt;"
+        return 1
+    fi
+    virsh dominfo $1
+}
+
+cmd_status() {
+    echo "========================================="
+    echo "       虚拟机状态总览"
+    echo "========================================="
+    echo ""
+    virsh list --all
+    echo ""
+    echo "--- 资源使用 ---"
+    for vm in $(virsh list --name); do
+        if [ -n "$vm" ]; then
+            echo "VM: $vm"
+            virsh domstats $vm | grep -E 'cpu\.|balloon\.current'
+            echo ""
+        fi
+    done
+}
+
+cmd_start_all() {
+    echo "启动所有已定义为自动启动的虚拟机..."
+    for vm in $(virsh list --autostart --name); do
+        if ! virsh list --name | grep -q "^${vm}$"; then
+            echo "启动: $vm"
+            virsh start $vm
+        fi
+    done
+}
+
+cmd_stop_all() {
+    echo "关闭所有运行中的虚拟机..."
+    for vm in $(virsh list --name); do
+        if [ -n "$vm" ]; then
+            echo "关闭: $vm"
+            virsh shutdown $vm
+        fi
+    done
+}
+
+case "$1" in
+    list|ls)
+        cmd_list
+        ;;
+    start)
+        cmd_start $2
+        ;;
+    stop|shutdown)
+        cmd_stop $2
+        ;;
+    force-stop|destroy)
+        cmd_force_stop $2
+        ;;
+    restart|reboot)
+        cmd_restart $2
+        ;;
+    console|con)
+        cmd_console $2
+        ;;
+    info)
+        cmd_info $2
+        ;;
+    status|st)
+        cmd_status
+        ;;
+    start-all)
+        cmd_start_all
+        ;;
+    stop-all|shutdown-all)
+        cmd_stop_all
+        ;;
+    *)
+        echo "虚拟机管理工具"
+        echo ""
+        echo "用法: vm-manager &lt;command&gt; [vm-name]"
+        echo ""
+        echo "命令:"
+        echo "  list              列出所有虚拟机"
+        echo "  start &lt;vm&gt;        启动虚拟机"
+        echo "  stop &lt;vm&gt;         关闭虚拟机"
+        echo "  force-stop &lt;vm&gt;   强制关闭虚拟机"
+        echo "  restart &lt;vm&gt;      重启虚拟机"
+        echo "  console &lt;vm&gt;      连接到虚拟机控制台"
+        echo "  info &lt;vm&gt;         显示虚拟机信息"
+        echo "  status            显示所有VM状态"
+        echo "  start-all         启动所有自动启动的VM"
+        echo "  stop-all          关闭所有运行中的VM"
+        exit 1
+        ;;
+esac
+EOF
+
+chmod +x /usr/local/bin/vm-manager
+```
+
+---
+
+## 💾 虚拟机备份脚本
+
+```bash
+cat &gt; /usr/local/bin/vm-backup &lt;&lt;'EOF'
+#!/bin/bash
+
+VM_NAME=$1
+BACKUP_DIR="/backup/vms"
+
+if [ -z "$VM_NAME" ]; then
+    echo "用法: vm-backup &lt;vm-name&gt;"
+    exit 1
+fi
+
+mkdir -p $BACKUP_DIR
+
+TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+BACKUP_FILE="$BACKUP_DIR/${VM_NAME}-${TIMESTAMP}.xml"
+
+echo "备份虚拟机配置: $VM_NAME"
+virsh dumpxml $VM_NAME &gt; $BACKUP_FILE
+
+echo "配置已备份到: $BACKUP_FILE"
+echo ""
+echo "备份磁盘需要手动执行:"
+DISK=$(virsh domblklist $VM_NAME | grep vd | awk '{print $2}')
+echo "  cp $DISK ${BACKUP_DIR}/${VM_NAME}-${TIMESTAMP}.img"
+EOF
+
+chmod +x /usr/local/bin/vm-backup
+```
+
+---
+
+## 📝 虚拟机资源分配策略
+
+### 推荐配置
+
+```bash
+cat &gt; /root/vm-resource-plan.txt &lt;&lt;'EOF'
+========================================
+        虚拟机资源分配计划
+========================================
+
+宿主机配置:
+  - CPU: AMD R5 5600G (6核12线程)
+  - 内存: 32GB
+  - 可用于VM: ~28GB内存, 10-11个vCPU
+
+虚拟机分配:
+========================================
+
+1. python-dev (Python开发)
+   - vCPU: 2
+   - 内存: 4GB  
+   - 磁盘: 80GB (qcow2)
+   - IP: 192.168.71.201
+   - 自动启动: 否
+
+2. web-app (Web应用部署)
+   - vCPU: 2
+   - 内存: 4GB
+   - 磁盘: 100GB (qcow2)
+   - IP: 192.168.71.202
+   - 自动启动: 是
+
+3. router (旁路由)
+   - vCPU: 2
+   - 内存: 2GB
+   - 磁盘: 20GB (qcow2)
+   - IP: 192.168.71.254
+   - 自动启动: 是
+
+4. nas (文件服务器)
+   - vCPU: 2
+   - 内存: 4GB
+   - 磁盘: 30GB (raw) + 500GB数据卷
+   - IP: 192.168.71.210
+   - 自动启动: 是
+
+总计:
+  - vCPU: 8 (留4个给宿主机)
+  - 内存: 14GB (留18GB给宿主机+缓存)
+  - 磁盘: 230GB + 500GB数据
+
+========================================
+CPU绑定策略(可选):
+========================================
+
+# 为关键VM绑定CPU核心
+virsh vcpupin nas 0 0,6
+virsh vcpupin nas 1 1,7
+virsh vcpupin router 0 2,8
+virsh vcpupin router 1 3,9
+
+# 查看CPU绑定
+virsh vcpupin nas
+
+========================================
+EOF
+
+cat /root/vm-resource-plan.txt
+```
+
+---
+
+## 🔄 虚拟机自动启动配置
+
+```bash
+# 设置开机自动启动
+virsh autostart nas
+virsh autostart router
+virsh autostart web-app
+
+# 不自动启动开发VM
+virsh autostart --disable python-dev
+
+# 查看自动启动状态
+virsh list --all --autostart
+```
+
+---
+
+## 📚 常用操作速查表
+
+```bash
+cat &gt; /root/vm-cheatsheet.txt &lt;&lt;'EOF'
+========================================
+     虚拟机操作速查表
+========================================
+
+列出虚拟机:
+  virsh list --all          # 所有VM
+  virsh list                # 运行中的VM
+
+启动/停止:
+  virsh start &lt;vm&gt;          # 启动
+  virsh shutdown &lt;vm&gt;       # 优雅关机
+  virsh destroy &lt;vm&gt;        # 强制关机
+  virsh reboot &lt;vm&gt;         # 重启
+
+自动启动:
+  virsh autostart &lt;vm&gt;      # 启用自动启动
+  virsh autostart --disable &lt;vm&gt;  # 禁用
+
+信息查看:
+  virsh dominfo &lt;vm&gt;        # VM信息
+  virsh domstats &lt;vm&gt;       # 统计信息  
+  virsh vncdisplay &lt;vm&gt;     # VNC端口
+
+控制台:
+  virsh console &lt;vm&gt;        # 文本控制台 (Ctrl+] 退出)
+
+快照:
+  virsh snapshot-create-as &lt;vm&gt; snap1  # 创建快照
+  virsh snapshot-list &lt;vm&gt;             # 列出快照
+  virsh snapshot-revert &lt;vm&gt; snap1     # 恢复快照
+
+磁盘管理:
+  virsh domblklist &lt;vm&gt;     # 列出磁盘
+  virsh attach-disk &lt;vm&gt; /path/to/disk vdb  # 挂载磁盘
+  
+资源调整:
+  virsh setmem &lt;vm&gt; 4G      # 调整内存(VM需支持)
+  virsh setvcpus &lt;vm&gt; 4     # 调整CPU
+
+网络:
+  virsh domiflist &lt;vm&gt;      # 列出网卡
+  virsh domifstat &lt;vm&gt; vnet0  # 网卡统计
+
+删除VM:
+  virsh destroy &lt;vm&gt;        # 先关机
+  virsh undefine &lt;vm&gt; --remove-all-storage  # 删除VM和磁盘
+
+========================================
+自定义管理命令:
+========================================
+
+vm-manager list           # 列出所有VM
+vm-manager start &lt;vm&gt;     # 启动VM
+vm-manager stop &lt;vm&gt;      # 关闭VM
+vm-manager status         # 状态总览
+vm-manager console &lt;vm&gt;   # 连接控制台
+
+create-vm &lt;name&gt; &lt;ram&gt; &lt;cpu&gt; &lt;disk&gt; &lt;format&gt; &lt;iso&gt; &lt;ip&gt;
+vm-backup &lt;vm&gt;           # 备份VM配置
+
+storage-monitor          # 存储监控
+sysinfo                  # 系统信息
+
+========================================
+EOF
+
+cat /root/vm-cheatsheet.txt
+```
+
+---
+
+## ✅ 验证工具
+
+```bash
+cat &gt; /root/verify-vms.sh &lt;&lt;'EOF'
+#!/bin/bash
+
+echo "========================================="
+echo "       虚拟机环境验证"
+echo "========================================="
+echo ""
+
+echo "--- 存储池状态 ---"
+virsh pool-list --all
+echo ""
+
+echo "--- 虚拟机列表 ---"
+virsh list --all
+echo ""
+
+echo "--- 网络配置 ---"
+virsh net-list --all
+echo ""
+
+echo "--- 磁盘使用 ---"
+storage-monitor 2&gt;/dev/null || lvs vg_kvm
+echo ""
+
+echo "验证完成!"
+EOF
+
+chmod +x /root/verify-vms.sh
+/root/verify-vms.sh
+```
+
+---
+
+## 📝 完成检查清单
+
+- [x] 创建了VM创建脚本
+- [x] 创建了VM管理工具
+- [x] 配置了资源分配计划
+- [x] 了解了常用操作命令
+- [x] 准备好了备份工具
+
+---
+
+## 🎯 下一步
+
+👉 **[05-monitoring.md - 监控方案](#section-5)**
+
+或直接创建具体的虚拟机:
+- **[06-vm-python-dev.md - Python开发VM](#section-6)**
+- **[11-vm-nas.md - NAS文件服务器](#section-11)**
+- **[09-vm-router-openwrt.md - OpenWrt旁路由](#section-9)**
+
+---
+
+## 💡 使用示例
+
+### 创建Ubuntu开发VM
+
+```bash
+# 先下载Ubuntu ISO
+cd /kvm/iso
+wget https://mirrors.tuna.tsinghua.edu.cn/ubuntu-releases/22.04/ubuntu-22.04.3-live-server-amd64.iso
+
+# 创建VM
+create-vm python-dev 4 2 80 qcow2 /kvm/iso/ubuntu-22.04.3-live-server-amd64.iso 192.168.71.201
+```
+
+### 日常管理
+
+```bash
+# 查看所有VM状态
+vm-manager status
+
+# 启动VM
+vm-manager start python-dev
+
+# 连接控制台
+vm-manager console python-dev
+
+# 关闭所有VM(维护前)
+vm-manager stop-all
+```
+
+
+
+
+---
+
+
+
+# 05 - 监控和管理方案
+
+## 📋 本文档内容
+
+配置Cockpit Web控制台和性能监控工具。
+
+**预计耗时**: 25分钟
+
+---
+
+## 🌐 Cockpit Web控制台
+
+### 安装Cockpit
+
+```bash
+sudo dnf install -y cockpit cockpit-machines cockpit-storaged cockpit-packagekit
+
+# 启动服务
+sudo systemctl enable --now cockpit.socket
+
+# 开放防火墙
+sudo firewall-cmd --permanent --add-service=cockpit
+sudo firewall-cmd --reload
+```
+
+### 访问Cockpit
+
+浏览器访问: **https://192.168.71.200:9090**
+
+登录账户: chris (或root)
+
+功能:
+- 系统监控(CPU/内存/网络)
+- 虚拟机管理
+- 存储管理
+- 日志查看
+
+---
+
+## 📊 性能监控脚本
+
+```bash
+sudo cat &gt; /usr/local/bin/sys-monitor &lt;&lt;'EOF'
+#!/bin/bash
+echo "=== 系统监控 ==="
+echo "负载: $(uptime | awk -F'load average:' '{print $2}')"
+echo ""
+free -h
+echo ""
+df -h | grep -E 'Filesystem|vg_kvm|/data'
+echo ""
+echo "=== 虚拟机状态 ==="
+virsh list --all
+EOF
+
+sudo chmod +x /usr/local/bin/sys-monitor
+```
+
+---
+
+## 🔔 资源监控
+
+```bash
+# 实时监控
+htop
+
+# VM性能
+virt-top
+
+# 存储监控
+storage-monitor
+```
+
+---
+
+## 📝 完成
+
+- [x] Cockpit已安装
+- [x] 监控脚本已创建
+- [x] 可通过Web管理虚拟机
+
+👉 **下一步: [06-vm-python-dev.md](#section-6)**
+
+
+
+
+---
+
+
+
+# 06 - Python开发虚拟机配置
+
+## 📋 本文档内容
+
+创建和配置Ubuntu 22.04 Python开发环境虚拟机。
+
+**预计耗时**: 40分钟
+
+---
+
+## 🚀 步骤1: 下载Ubuntu ISO
+
+```bash
+cd /kvm/iso
+wget https://mirrors.tuna.tsinghua.edu.cn/ubuntu-releases/22.04/ubuntu-22.04.3-live-server-amd64.iso
+```
+
+---
+
+## 💻 步骤2: 创建虚拟机
+
+```bash
+create-vm python-dev 4 2 80 qcow2 \
+  /kvm/iso/ubuntu-22.04.3-live-server-amd64.iso \
+  192.168.71.201
+```
+
+---
+
+## ⚙️ 步骤3: 安装Ubuntu系统
+
+1. 连接VNC或使用 `virt-viewer python-dev`
+2. 选择语言: English
+3. 网络配置:
+   - 编辑enp1s0
+   - IPv4 Method: Manual
+   - Address: 192.168.71.201/24
+   - Gateway: 192.168.71.1
+   - DNS: 192.168.71.1,223.5.5.5
+4. 存储: 使用整个磁盘
+5. 创建用户: dev/密码
+6. 安装OpenSSH server
+7. 等待安装完成，重启
+
+安装完成后:
+```bash
+# 弹出安装光盘
+virsh change-media python-dev sda --eject
+
+# 设置自动启动(可选)
+# virsh autostart python-dev
+```
+
+---
+
+## 🔧 步骤4: 系统初始化配置
+
+SSH登录到虚拟机:
+```bash
+ssh dev@192.168.71.201
+```
+
+### 4.1 配置国内镜像源
+
+```bash
+sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
+
+sudo cat &gt; /etc/apt/sources.list &lt;&lt;'EOF'
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-updates main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-backports main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-security main restricted universe multiverse
+EOF
+
+sudo apt update &amp;&amp; sudo apt upgrade -y
+```
+
+### 4.2 安装Python环境
+
+```bash
+# 安装Python 3.11
+sudo apt install -y software-properties-common
+sudo add-apt-repository -y ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install -y python3.11 python3.11-venv python3.11-dev
+
+# 设置默认Python
+sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
+
+# 安装pip
+curl -sS https://bootstrap.pypa.io/get-pip.py | sudo python3.11
+
+# 配置pip清华源
+mkdir -p ~/.pip
+cat &gt; ~/.pip/pip.conf &lt;&lt;'EOF'
+[global]
+index-url = https://pypi.tuna.tsinghua.edu.cn/simple
+[install]
+trusted-host = pypi.tuna.tsinghua.edu.cn
+EOF
+
+# 验证
+python3 --version
+pip3 --version
+```
+
+### 4.3 安装开发工具
+
+```bash
+sudo apt install -y \
+    git \
+    vim \
+    htop \
+    curl \
+    wget \
+    build-essential \
+    libssl-dev \
+    libffi-dev \
+    python3-pip \
+    tmux \
+    tree
+```
+
+### 4.4 配置Git
+
+```bash
+git config --global user.name "Your Name"
+git config --global user.email "your@email.com"
+git config --global init.defaultBranch main
+```
+
+---
+
+## 📦 步骤5: 安装常用Python包
+
+```bash
+# 创建虚拟环境示例
+python3 -m venv ~/venv
+source ~/venv/bin/activate
+
+# 安装常用包
+pip install \
+    requests \
+    flask \
+    fastapi \
+    uvicorn \
+    sqlalchemy \
+    pytest \
+    black \
+    flake8 \
+    ipython
+
+# 退出虚拟环境
+deactivate
+```
+
+---
+
+## ✅ 验证配置
+
+```bash
+# 系统信息
+uname -a
+python3 --version
+pip3 --version
+git --version
+
+# 网络测试
+ping -c 3 223.5.5.5
+```
+
+---
+
+## 📝 完成
+
+Python开发环境已配置完成!
+
+使用方式:
+```bash
+# SSH连接
+ssh dev@192.168.71.201
+
+# 创建项目
+python3 -m venv myproject
+cd myproject &amp;&amp; source bin/activate
+pip install flask
+```
+
+👉 **下一步: [07-vm-web-app.md](#section-7)**
+
+
+
+
+---
+
+
+
+# 07 - Web应用部署虚拟机配置
+
+## 📋 本文档内容
+
+创建和配置Ubuntu 22.04 Web应用生产部署环境虚拟机。
+
+**预计耗时**: 50分钟  
+**难度**: ⭐⭐⭐☆☆
+
+---
+
+## 🚀 步骤1: 创建虚拟机
+
+```bash
+# 使用已下载的Ubuntu ISO（参考06文档）
+create-vm web-app 4 2 100 qcow2 \
+  /kvm/iso/ubuntu-22.04.3-live-server-amd64.iso \
+  192.168.71.202
+```
+
+---
+
+## ⚙️ 步骤2: 安装Ubuntu系统
+
+安装过程与Python开发VM类似，网络配置：
+- IP: 192.168.71.202/24
+- Gateway: 192.168.71.1
+- DNS: 192.168.71.1,223.5.5.5
+- 用户: webadmin
+
+安装完成后弹出光盘：
+```bash
+virsh change-media web-app sda --eject
+virsh autostart web-app  # 生产环境设置自动启动
+```
+
+---
+
+## 🔧 步骤3: 系统初始化
+
+SSH登录：
+```bash
+ssh webadmin@192.168.71.202
+```
+
+### 3.1 配置镜像源
+
+```bash
+sudo cp /etc/apt/sources.list /etc/apt/sources.list.bak
+
+sudo tee /etc/apt/sources.list &gt; /dev/null &lt;&lt;'EOF'
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-updates main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-backports main restricted universe multiverse
+deb https://mirrors.tuna.tsinghua.edu.cn/ubuntu/ jammy-security main restricted universe multiverse
+EOF
+
+sudo apt update &amp;&amp; sudo apt upgrade -y
+```
+
+### 3.2 安装基础工具
+
+```bash
+sudo apt install -y \
+    vim \
+    git \
+    curl \
+    wget \
+    htop \
+    net-tools \
+    build-essential \
+    software-properties-common
+```
+
+---
+
+## 🐍 步骤4: Python环境配置
+
+```bash
+# 安装Python 3.11
+sudo add-apt-repository -y ppa:deadsnakes/ppa
+sudo apt update
+sudo apt install -y python3.11 python3.11-venv python3.11-dev python3-pip
+
+# 配置pip清华源
+mkdir -p ~/.pip
+cat &gt; ~/.pip/pip.conf &lt;&lt;'EOF'
+[global]
+index-url = https://pypi.tuna.tsinghua.edu.cn/simple
+[install]
+trusted-host = pypi.tuna.tsinghua.edu.cn
+EOF
+
+sudo cp ~/.pip/pip.conf /root/.pip/pip.conf
+```
+
+---
+
+## 🌐 步骤5: Nginx安装配置
+
+```bash
+# 安装Nginx
+sudo apt install -y nginx
+
+# 启动并设置自启动
+sudo systemctl enable --now nginx
+
+# 验证
+sudo systemctl status nginx
+curl http://localhost
+
+# 配置防火墙
+sudo ufw allow 'Nginx Full'
+sudo ufw enable
+```
+
+### 5.1 创建应用配置模板
+
+```bash
+sudo tee /etc/nginx/sites-available/app-template &lt;&lt;'EOF'
+server {
+    listen 80;
+    server_name _;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /static/ {
+        alias /var/www/app/static/;
+    }
+
+    location /media/ {
+        alias /var/www/app/media/;
+    }
+}
+EOF
+```
+
+---
+
+## 🔄 步骤6: 应用服务器配置
+
+### 6.1 安装Gunicorn
+
+```bash
+sudo pip3 install gunicorn
+```
+
+### 6.2 创建systemd服务模板
+
+```bash
+sudo tee /etc/systemd/system/webapp.service &lt;&lt;'EOF'
+[Unit]
+Description=Web Application
+After=network.target
+
+[Service]
+Type=notify
+User=webadmin
+Group=webadmin
+WorkingDirectory=/home/webadmin/app
+Environment="PATH=/home/webadmin/app/venv/bin"
+ExecStart=/home/webadmin/app/venv/bin/gunicorn \
+    --workers 3 \
+    --bind 127.0.0.1:8000 \
+    --timeout 120 \
+    --access-logfile /var/log/webapp/access.log \
+    --error-logfile /var/log/webapp/error.log \
+    wsgi:application
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# 创建日志目录
+sudo mkdir -p /var/log/webapp
+sudo chown webadmin:webadmin /var/log/webapp
+```
+
+---
+
+## 🗄️ 步骤7: 数据库安装
+
+### 7.1 PostgreSQL（推荐）
+
+```bash
+# 安装PostgreSQL
+sudo apt install -y postgresql postgresql-contrib
+
+# 启动服务
+sudo systemctl enable --now postgresql
+
+# 创建数据库和用户
+sudo -u postgres psql &lt;&lt;'EOF'
+CREATE DATABASE webapp_db;
+CREATE USER webapp_user WITH PASSWORD 'secure_password';
+ALTER ROLE webapp_user SET client_encoding TO 'utf8';
+ALTER ROLE webapp_user SET default_transaction_isolation TO 'read committed';
+ALTER ROLE webapp_user SET timezone TO 'Asia/Shanghai';
+GRANT ALL PRIVILEGES ON DATABASE webapp_db TO webapp_user;
+\q
+EOF
+
+# 安装Python PostgreSQL驱动
+pip3 install psycopg2-binary
+```
+
+### 7.2 MySQL（可选）
+
+```bash
+# 安装MySQL
+sudo apt install -y mysql-server
+
+# 安全配置
+sudo mysql_secure_installation
+
+# 创建数据库
+sudo mysql &lt;&lt;'EOF'
+CREATE DATABASE webapp_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'webapp_user'@'localhost' IDENTIFIED BY 'secure_password';
+GRANT ALL PRIVILEGES ON webapp_db.* TO 'webapp_user'@'localhost';
+FLUSH PRIVILEGES;
+EXIT;
+EOF
+
+# 安装Python MySQL驱动
+pip3 install mysqlclient
+```
+
+---
+
+## 📦 步骤8: Redis缓存
+
+```bash
+# 安装Redis
+sudo apt install -y redis-server
+
+# 配置Redis
+sudo sed -i 's/^supervised no/supervised systemd/' /etc/redis/redis.conf
+
+# 重启Redis
+sudo systemctl restart redis-server
+sudo systemctl enable redis-server
+
+# 验证
+redis-cli ping
+
+# 安装Python Redis客户端
+pip3 install redis
+```
+
+---
+
+## 🐳 步骤9: Docker环境（可选）
+
+```bash
+# 安装Docker
+curl -fsSL https://mirrors.aliyun.com/docker-ce/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://mirrors.aliyun.com/docker-ce/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list &gt; /dev/null
+
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# 配置Docker国内镜像
+sudo mkdir -p /etc/docker
+sudo tee /etc/docker/daemon.json &lt;&lt;'EOF'
+{
+  "registry-mirrors": [
+    "https://docker.mirrors.ustc.edu.cn",
+    "https://hub-mirror.c.163.com"
+  ]
+}
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl restart docker
+sudo systemctl enable docker
+
+# 添加用户到docker组
+sudo usermod -aG docker webadmin
+
+# 验证
+docker --version
+docker run hello-world
+```
+
+---
+
+## 📝 步骤10: 部署示例应用
+
+### 10.1 创建Flask应用示例
+
+```bash
+mkdir -p ~/app
+cd ~/app
+
+# 创建虚拟环境
+python3.11 -m venv venv
+source venv/bin/activate
+
+# 安装依赖
+pip install flask gunicorn
+
+# 创建应用
+cat &gt; app.py &lt;&lt;'EOF'
+from flask import Flask
+
+app = Flask(__name__)
+
+@app.route('/')
+def hello():
+    return '&lt;h1&gt;Web Application Server&lt;/h1&gt;&lt;p&gt;Running on 192.168.71.202&lt;/p&gt;'
+
+@app.route('/health')
+def health():
+    return {'status': 'healthy'}
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8000)
+EOF
+
+# 创建WSGI入口
+cat &gt; wsgi.py &lt;&lt;'EOF'
+from app import app
+
+application = app
+
+if __name__ == '__main__':
+    application.run()
+EOF
+
+# 测试运行
+gunicorn --bind 0.0.0.0:8000 wsgi:application
+```
+
+### 10.2 配置Nginx
+
+```bash
+# 创建应用专用配置
+sudo tee /etc/nginx/sites-available/myapp &lt;&lt;'EOF'
+server {
+    listen 80;
+    server_name 192.168.71.202;
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+EOF
+
+# 启用配置
+sudo ln -s /etc/nginx/sites-available/myapp /etc/nginx/sites-enabled/
+sudo rm /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### 10.3 配置systemd服务
+
+```bash
+# 修改服务配置
+sudo tee /etc/systemd/system/myapp.service &lt;&lt;'EOF'
+[Unit]
+Description=My Flask Application
+After=network.target
+
+[Service]
+Type=notify
+User=webadmin
+Group=webadmin
+WorkingDirectory=/home/webadmin/app
+Environment="PATH=/home/webadmin/app/venv/bin"
+ExecStart=/home/webadmin/app/venv/bin/gunicorn \
+    --workers 3 \
+    --bind 127.0.0.1:8000 \
+    wsgi:application
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# 启动服务
+sudo systemctl daemon-reload
+sudo systemctl enable myapp
+sudo systemctl start myapp
+
+# 验证
+sudo systemctl status myapp
+curl http://192.168.71.202
+```
+
+---
+
+## ✅ 步骤11: 验证部署
+
+```bash
+# 检查服务状态
+sudo systemctl status nginx
+sudo systemctl status myapp
+sudo systemctl status postgresql
+sudo systemctl status redis
+
+# 测试访问
+curl http://192.168.71.202
+curl http://192.168.71.202/health
+
+# 从宿主机测试
+# ssh chris@192.168.71.200
+# curl http://192.168.71.202
+```
+
+---
+
+## 🔒 步骤12: 安全加固
+
+```bash
+# 配置防火墙
+sudo ufw allow ssh
+sudo ufw allow http
+sudo ufw allow https
+sudo ufw enable
+
+# 禁用root SSH登录
+sudo sed -i 's/^PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
+sudo systemctl restart sshd
+
+# 配置自动安全更新
+sudo apt install -y unattended-upgrades
+sudo dpkg-reconfigure -plow unattended-upgrades
+```
+
+---
+
+## 📊 步骤13: 监控和日志
+
+```bash
+# 安装日志查看工具
+sudo apt install -y lnav
+
+# 查看应用日志
+sudo journalctl -u myapp -f
+
+# 查看Nginx日志
+sudo tail -f /var/log/nginx/access.log
+sudo tail -f /var/log/nginx/error.log
+
+# 安装htop监控
+htop
+```
+
+---
+
+## 📝 完成检查清单
+
+- [x] Ubuntu系统安装完成
+- [x] 镜像源配置为国内源
+- [x] Python环境配置
+- [x] Nginx安装配置
+- [x] 数据库安装（PostgreSQL/MySQL）
+- [x] Redis缓存配置
+- [x] Docker环境配置（可选）
+- [x] 示例应用部署
+- [x] systemd服务配置
+- [x] 防火墙和安全配置
+- [x] 可从局域网访问
+
+---
+
+## 🎯 下一步
+
+Web应用服务器已配置完成！
+
+### 从开发VM部署应用流程
+
+```bash
+# 在开发VM (192.168.71.201) 打包应用
+cd ~/myproject
+tar -czf myapp.tar.gz .
+
+# 传输到生产VM
+scp myapp.tar.gz webadmin@192.168.71.202:~/
+
+# 在生产VM部署
+ssh webadmin@192.168.71.202
+tar -xzf myapp.tar.gz -C ~/app/
+cd ~/app
+source venv/bin/activate
+pip install -r requirements.txt
+sudo systemctl restart myapp
+```
+
+👉 **[08-vm-router-comparison.md - 旁路由方案对比](#section-8)**
+
+
+
+
+---
+
+
+
+# 08 - 旁路由方案对比
+
+## 📋 两种方案对比
+
+### OpenWrt + OpenClash vs Rocky 9 + V2Ray
+
+| 特性 | OpenWrt + OpenClash | Rocky 9 + V2Ray |
+|------|---------------------|-----------------|
+| **易用性** | ⭐⭐⭐⭐⭐ Web界面 | ⭐⭐⭐☆☆ 命令行配置 |
+| **配置难度** | ⭐⭐☆☆☆ 简单 | ⭐⭐⭐⭐☆ 较复杂 |
+| **Clash订阅** | ✅ 原生支持 | ⚠️ 需转换 |
+| **性能** | ⭐⭐⭐⭐☆ 较好 | ⭐⭐⭐⭐⭐ 优秀 |
+| **资源占用** | 512MB-1GB | 1GB-2GB |
+| **稳定性** | ⭐⭐⭐⭐☆ | ⭐⭐⭐⭐⭐ |
+| **功能丰富度** | ⭐⭐⭐⭐⭐ 插件丰富 | ⭐⭐⭐☆☆ 专注代理 |
+| **上手时间** | 1-2小时 | 3-4小时 |
+
+---
+
+## 🎯 推荐选择
+
+### 选择OpenWrt，如果你：
+- ✅ 希望有Web界面管理
+- ✅ 习惯使用Clash订阅
+- ✅ 需要去广告等额外功能
+- ✅ 想要开箱即用的体验
+- ✅ 是Linux新手
+
+### 选择V2Ray，如果你：
+- ✅ 追求最佳性能
+- ✅ 熟悉Linux命令行
+- ✅ 需要高度自定义
+- ✅ 想深入学习代理技术
+- ✅ 有脚本编写能力
+
+---
+
+## 💡 我的建议
+
+**对于您的情况（Linux经验较少）：推荐OpenWrt + OpenClash**
+
+理由：
+1. ✅ Web界面友好，降低学习曲线
+2. ✅ Clash订阅直接导入，无需转换
+3. ✅ 社区资源丰富，问题容易解决
+4. ✅ 可以边用边学，后期再尝试V2Ray
+
+---
+
+## 📚 后续文档
+
+- **[09-vm-router-openwrt.md](#section-9)** - OpenWrt旁路由完整配置
+- **[10-vm-router-v2ray.md](#section-10)** - V2Ray旁路由完整配置
+
+建议先阅读09文档，如果OpenWrt无法满足需求，再尝试10文档的V2Ray方案。
+
+
+
+
+---
+
+
+
+# 09 - OpenWrt旁路由配置
+
+## 📋 本文档内容
+
+使用OpenWrt + OpenClash实现透明代理旁路由。
+
+**预计耗时**: 60分钟
+
+---
+
+## 🚀 步骤1: 下载OpenWrt镜像
+
+```bash
+cd /kvm/iso
+
+# 下载OpenWrt x86-64版本
+wget https://mirrors.ustc.edu.cn/openwrt/releases/23.05.2/targets/x86/64/openwrt-23.05.2-x86-64-generic-ext4-combined.img.gz
+
+# 解压
+gunzip openwrt-23.05.2-x86-64-generic-ext4-combined.img.gz
+```
+
+---
+
+## 💻 步骤2: 创建虚拟机
+
+```bash
+# 转换镜像为qcow2
+sudo qemu-img convert -f raw -O qcow2 \
+    /kvm/iso/openwrt-23.05.2-x86-64-generic-ext4-combined.img \
+    /kvm/iso/openwrt.qcow2
+
+# 扩展磁盘到20GB
+sudo qemu-img resize /kvm/iso/openwrt.qcow2 20G
+
+# 复制到存储池
+sudo cp /kvm/iso/openwrt.qcow2 /var/lib/libvirt/images/router.qcow2
+
+# 创建虚拟机
+virt-install \
+    --name router \
+    --ram 2048 \
+    --vcpus 2 \
+    --disk /var/lib/libvirt/images/router.qcow2,format=qcow2,bus=virtio \
+    --network bridge=br0,model=virtio \
+    --graphics vnc,listen=0.0.0.0 \
+    --os-variant generic \
+    --import \
+    --noautoconsole
+```
+
+---
+
+## ⚙️ 步骤3: 初始配置
+
+### 3.1 通过VNC连接配置网络
+
+```bash
+# 查看VNC端口
+virsh vncdisplay router
+
+# OpenWrt默认IP: 192.168.1.1
+# 需要修改为: 192.168.71.254
+```
+
+在VNC控制台：
+```bash
+vi /etc/config/network
+
+# 修改lan接口:
+config interface 'lan'
+    option device 'br-lan'
+    option proto 'static'
+    option ipaddr '192.168.71.254'
+    option netmask '255.255.255.0'
+    option gateway '192.168.71.1'
+    option dns '192.168.71.1 223.5.5.5'
+
+# 重启网络
+/etc/init.d/network restart
+```
+
+### 3.2 Web访问
+
+浏览器访问: http://192.168.71.254
+
+默认用户名: root  
+默认密码: (无密码，首次登录设置)
+
+---
+
+## 📦 步骤4: 安装OpenClash
+
+### 4.1 上传OpenClash插件
+
+```bash
+# 下载OpenClash
+wget https://github.com/vernesong/OpenClash/releases/download/v0.45.123/luci-app-openclash_0.45.123_all.ipk
+
+# 上传到OpenWrt
+scp luci-app-openclash_0.45.123_all.ipk root@192.168.71.254:/tmp/
+```
+
+### 4.2 安装插件
+
+在OpenWrt Web界面或SSH：
+```bash
+ssh root@192.168.71.254
+
+# 安装依赖
+opkg update
+opkg install coreutils-nohup bash iptables dnsmasq-full curl ca-certificates ipset ip-full iptables-mod-tproxy iptables-mod-extra libcap libcap-bin ruby ruby-yaml kmod-tun kmod-inet-diag unzip luci-compat luci luci-base
+
+# 安装OpenClash
+opkg install /tmp/luci-app-openclash_0.45.123_all.ipk
+```
+
+---
+
+## 🔧 步骤5: 配置OpenClash
+
+### 5.1 导入Clash订阅
+
+Web界面: http://192.168.71.254
+
+1. 服务 → OpenClash → 配置文件订阅
+2. 添加订阅地址（你的机场订阅链接）
+3. 保存并更新
+
+### 5.2 基本设置
+
+```
+模式设置:
+- 运行模式: Redir-Host (推荐)
+- 访问控制: 全部代理
+
+DNS设置:
+- 使用自定义DNS: 启用
+- 本地DNS: 223.5.5.5
+- 国外DNS: 8.8.8.8
+```
+
+### 5.3 启动服务
+
+点击"启动 OpenClash"
+
+---
+
+## 🌐 步骤6: 客户端配置
+
+### 方案A: DHCP自动分发（推荐）
+
+在主路由（192.168.71.1）配置DHCP选项：
+- 网关: 192.168.71.254（OpenWrt旁路由）
+
+所有设备自动走代理。
+
+### 方案B: 手动配置
+
+在需要翻墙的设备上：
+- 网关改为: 192.168.71.254
+- DNS改为: 192.168.71.254
+
+---
+
+## ✅ 验证
+
+```bash
+# 在客户端测试
+curl https://www.google.com
+curl ipinfo.io
+
+# 查看OpenClash状态
+ssh root@192.168.71.254
+/etc/init.d/openclash status
+```
+
+---
+
+## 📝 完成
+
+OpenWrt旁路由配置完成！
+
+**Tips**:
+- 定期更新订阅
+- 关注OpenClash更新
+- 备份配置文件
+
+👉 **[11-vm-nas.md](#section-11)**
+
+
+
+
+---
+
+
+
+# 09 - 补充OpenClash省流配置
+
+## 📋 配置目标
+
+- ✅ 仅必要网站走代理（Google、YouTube、Claude等）
+- ✅ 国内网站直连
+- ✅ 方便添加新的代理规则
+- ✅ 节省VPN流量
+
+---
+
+## 🎯 核心配置策略
+
+### 三层分流规则
+
+```
+1. 自定义规则（最优先）
+   - 您手动添加的网站
+   - Google、YouTube、Claude等
+   
+2. GFWList规则（次优先）
+   - 常见被墙网站
+   
+3. 默认直连（最后）
+   - 所有其他流量直连
+```
+
+---
+
+## ⚙️ 详细配置步骤
+
+### 步骤1: OpenClash基本设置
+
+登录OpenWrt: http://192.168.71.254
+
+进入：**服务 → OpenClash → 全局设置**
+
+```
+运行模式: Rule (规则模式) ← 关键！
+默认代理方式: DIRECT (直连)
+```
+
+### 步骤2: 配置分流规则
+
+进入：**服务 → OpenClash → 规则设置**
+
+#### 2.1 启用规则
+
+```
+启用自定义规则: ✅
+启用访问控制: ✅
+```
+
+#### 2.2 添加自定义规则
+
+点击"自定义规则"，添加以下内容：
+
+```yaml
+# Google 服务
+DOMAIN-SUFFIX,google.com,PROXY
+DOMAIN-SUFFIX,googleapis.com,PROXY
+DOMAIN-SUFFIX,googleusercontent.com,PROXY
+DOMAIN-SUFFIX,gstatic.com,PROXY
+DOMAIN-SUFFIX,gmail.com,PROXY
+DOMAIN-SUFFIX,youtube.com,PROXY
+DOMAIN-SUFFIX,ytimg.com,PROXY
+DOMAIN-SUFFIX,googlevideo.com,PROXY
+DOMAIN-SUFFIX,youtu.be,PROXY
+
+# AI 服务
+DOMAIN-SUFFIX,openai.com,PROXY
+DOMAIN-SUFFIX,anthropic.com,PROXY
+DOMAIN-SUFFIX,claude.ai,PROXY
+DOMAIN-SUFFIX,gemini.google.com,PROXY
+
+# 社交媒体
+DOMAIN-SUFFIX,twitter.com,PROXY
+DOMAIN-SUFFIX,x.com,PROXY
+DOMAIN-SUFFIX,facebook.com,PROXY
+DOMAIN-SUFFIX,instagram.com,PROXY
+DOMAIN-SUFFIX,telegram.org,PROXY
+
+# 开发工具
+DOMAIN-SUFFIX,github.com,PROXY
+DOMAIN-SUFFIX,githubusercontent.com,PROXY
+DOMAIN-SUFFIX,stackoverflow.com,PROXY
+
+# 其他常用
+DOMAIN-SUFFIX,wikipedia.org,PROXY
+DOMAIN-SUFFIX,reddit.com,PROXY
+
+# 国内网站直连
+DOMAIN-SUFFIX,baidu.com,DIRECT
+DOMAIN-SUFFIX,qq.com,DIRECT
+DOMAIN-SUFFIX,taobao.com,DIRECT
+DOMAIN-SUFFIX,alipay.com,DIRECT
+DOMAIN-SUFFIX,bilibili.com,DIRECT
+DOMAIN-SUFFIX,zhihu.com,DIRECT
+
+# 国内IP段直连
+GEOIP,CN,DIRECT
+
+# 最终规则：其他全部直连
+MATCH,DIRECT
+```
+
+---
+
+## 🔧 快速添加新网站
+
+### 方法1: Web界面添加（推荐）
+
+1. 进入 **OpenClash → 规则设置 → 自定义规则**
+2. 在顶部添加一行：
+   ```
+   DOMAIN-SUFFIX,example.com,PROXY
+   ```
+3. 点击"保存配置"
+4. 重启OpenClash
+
+### 方法2: SSH命令行添加
+
+```bash
+# SSH登录OpenWrt
+ssh root@192.168.71.254
+
+# 编辑自定义规则文件
+vi /etc/openclash/custom/openclash_custom_rules.list
+
+# 添加新规则
+DOMAIN-SUFFIX,newsite.com,PROXY
+
+# 重启OpenClash
+/etc/init.d/openclash restart
+```
+
+### 方法3: 创建快捷添加脚本
+
+```bash
+# 在OpenWrt上创建
+cat &gt; /usr/bin/add-proxy &lt;&lt;'EOF'
+#!/bin/sh
+DOMAIN=$1
+if [ -z "$DOMAIN" ]; then
+    echo "用法: add-proxy example.com"
+    exit 1
+fi
+
+echo "DOMAIN-SUFFIX,$DOMAIN,PROXY" &gt;&gt; /etc/openclash/custom/openclash_custom_rules.list
+echo "已添加: $DOMAIN"
+echo "重启OpenClash生效: /etc/init.d/openclash restart"
+EOF
+
+chmod +x /usr/bin/add-proxy
+
+# 使用方法
+add-proxy gemini.google.com
+/etc/init.d/openclash restart
+```
+
+---
+
+## 📊 规则语法说明
+
+### 常用规则类型
+
+```yaml
+# 1. 域名后缀匹配（推荐，覆盖所有子域名）
+DOMAIN-SUFFIX,google.com,PROXY
+# 匹配: google.com, www.google.com, mail.google.com
+
+# 2. 完整域名匹配（精确）
+DOMAIN,www.google.com,PROXY
+# 只匹配: www.google.com
+
+# 3. 域名关键词匹配
+DOMAIN-KEYWORD,google,PROXY
+# 匹配包含google的所有域名
+
+# 4. IP-CIDR匹配
+IP-CIDR,8.8.8.8/32,PROXY
+# 匹配特定IP
+
+# 5. 地理位置匹配
+GEOIP,US,PROXY
+# 美国IP走代理
+
+GEOIP,CN,DIRECT
+# 中国IP直连
+```
+
+---
+
+## 🎨 推荐的完整配置模板
+
+创建文件：`/etc/openclash/custom_rules.yaml`
+
+```yaml
+# ==========================================
+# OpenClash 精准分流规则 - 流量节省版
+# ==========================================
+
+# ===== 1. 自定义代理规则（最高优先级）=====
+
+# AI工具
+- DOMAIN-SUFFIX,openai.com,PROXY
+- DOMAIN-SUFFIX,anthropic.com,PROXY
+- DOMAIN-SUFFIX,claude.ai,PROXY
+- DOMAIN-KEYWORD,chatgpt,PROXY
+- DOMAIN-KEYWORD,gemini,PROXY
+
+# Google全家桶
+- DOMAIN-SUFFIX,google.com,PROXY
+- DOMAIN-SUFFIX,google.com.hk,PROXY
+- DOMAIN-SUFFIX,googleapis.com,PROXY
+- DOMAIN-SUFFIX,googleusercontent.com,PROXY
+- DOMAIN-SUFFIX,gstatic.com,PROXY
+- DOMAIN-SUFFIX,gmail.com,PROXY
+- DOMAIN-SUFFIX,googlevideo.com,PROXY
+
+# YouTube
+- DOMAIN-SUFFIX,youtube.com,PROXY
+- DOMAIN-SUFFIX,ytimg.com,PROXY
+- DOMAIN-SUFFIX,youtu.be,PROXY
+- DOMAIN-KEYWORD,youtube,PROXY
+
+# 开发工具
+- DOMAIN-SUFFIX,github.com,PROXY
+- DOMAIN-SUFFIX,githubusercontent.com,PROXY
+- DOMAIN-SUFFIX,github.io,PROXY
+- DOMAIN-SUFFIX,stackoverflow.com,PROXY
+- DOMAIN-SUFFIX,stackexchange.com,PROXY
+
+# 社交媒体（按需添加）
+- DOMAIN-SUFFIX,twitter.com,PROXY
+- DOMAIN-SUFFIX,x.com,PROXY
+- DOMAIN-SUFFIX,t.co,PROXY
+# - DOMAIN-SUFFIX,facebook.com,PROXY
+# - DOMAIN-SUFFIX,instagram.com,PROXY
+
+# 学术资源
+- DOMAIN-SUFFIX,scholar.google.com,PROXY
+- DOMAIN-SUFFIX,arxiv.org,PROXY
+- DOMAIN-SUFFIX,researchgate.net,PROXY
+
+# ===== 2. 国内网站直连 =====
+- DOMAIN-SUFFIX,baidu.com,DIRECT
+- DOMAIN-SUFFIX,qq.com,DIRECT
+- DOMAIN-SUFFIX,taobao.com,DIRECT
+- DOMAIN-SUFFIX,tmall.com,DIRECT
+- DOMAIN-SUFFIX,alipay.com,DIRECT
+- DOMAIN-SUFFIX,aliyun.com,DIRECT
+- DOMAIN-SUFFIX,jd.com,DIRECT
+- DOMAIN-SUFFIX,bilibili.com,DIRECT
+- DOMAIN-SUFFIX,zhihu.com,DIRECT
+- DOMAIN-SUFFIX,douyin.com,DIRECT
+- DOMAIN-SUFFIX,tencent.com,DIRECT
+- DOMAIN-SUFFIX,163.com,DIRECT
+- DOMAIN-SUFFIX,sina.com.cn,DIRECT
+
+# ===== 3. 局域网直连 =====
+- IP-CIDR,192.168.0.0/16,DIRECT
+- IP-CIDR,10.0.0.0/8,DIRECT
+- IP-CIDR,172.16.0.0/12,DIRECT
+- IP-CIDR,127.0.0.0/8,DIRECT
+
+# ===== 4. 中国IP直连 =====
+- GEOIP,CN,DIRECT
+
+# ===== 5. 最终规则：其他全部直连 =====
+- MATCH,DIRECT
+```
+
+---
+
+## 📱 实时查看规则生效
+
+### 方法1: OpenClash日志
+
+Web界面：**OpenClash → 日志**
+
+可以看到每个连接匹配的规则。
+
+### 方法2: 命令行查看
+
+```bash
+# 查看当前连接
+logread | grep openclash
+
+# 实时查看日志
+logread -f | grep -E "PROXY|DIRECT"
+```
+
+---
+
+## 🧪 测试配置
+
+### 测试脚本
+
+```bash
+# 在任意设备上测试
+# 网关设置为 192.168.71.254
+
+# 测试代理网站
+curl -I https://www.google.com
+curl -I https://www.youtube.com
+curl -I https://claude.ai
+
+# 测试直连网站
+curl -I https://www.baidu.com
+curl -I https://www.zhihu.com
+
+# 查看当前IP
+curl ipinfo.io
+curl cip.cc
+```
+
+---
+
+## 📈 流量统计
+
+### 查看流量使用
+
+OpenClash Web界面：**流量统计**
+
+可以看到：
+- 总流量
+- 代理流量
+- 直连流量
+
+---
+
+## 💡 高级技巧
+
+### 1. 按时间段控制
+
+只在工作时间使用代理：
+
+```bash
+# 添加到 cron
+0 9 * * 1-5 /etc/init.d/openclash start
+0 18 * * 1-5 /etc/init.d/openclash stop
+```
+
+### 2. 创建网站分类
+
+```yaml
+# 文件: /etc/openclash/rules/ai-services.list
+DOMAIN-SUFFIX,openai.com,PROXY
+DOMAIN-SUFFIX,anthropic.com,PROXY
+DOMAIN-SUFFIX,claude.ai,PROXY
+
+# 文件: /etc/openclash/rules/google-services.list
+DOMAIN-SUFFIX,google.com,PROXY
+DOMAIN-SUFFIX,googleapis.com,PROXY
+```
+
+### 3. 白名单模式（更节省流量）
+
+如果您只想代理极少数网站：
+
+```yaml
+# 只代理以下网站，其他全部直连
+- DOMAIN-SUFFIX,google.com,PROXY
+- DOMAIN-SUFFIX,youtube.com,PROXY
+- DOMAIN-SUFFIX,claude.ai,PROXY
+- DOMAIN-SUFFIX,openai.com,PROXY
+
+# 其他全部直连
+- MATCH,DIRECT
+```
+
+---
+
+## 🔄 常用网站规则库
+
+### AI工具
+
+```yaml
+- DOMAIN-SUFFIX,openai.com,PROXY
+- DOMAIN-SUFFIX,anthropic.com,PROXY
+- DOMAIN-SUFFIX,claude.ai,PROXY
+- DOMAIN-SUFFIX,perplexity.ai,PROXY
+- DOMAIN-SUFFIX,midjourney.com,PROXY
+- DOMAIN-SUFFIX,bard.google.com,PROXY
+- DOMAIN-SUFFIX,gemini.google.com,PROXY
+- DOMAIN-SUFFIX,poe.com,PROXY
+- DOMAIN-SUFFIX,huggingface.co,PROXY
+```
+
+### 开发工具
+
+```yaml
+- DOMAIN-SUFFIX,github.com,PROXY
+- DOMAIN-SUFFIX,githubusercontent.com,PROXY
+- DOMAIN-SUFFIX,npmjs.com,PROXY
+- DOMAIN-SUFFIX,pypi.org,PROXY
+- DOMAIN-SUFFIX,docker.com,PROXY
+- DOMAIN-SUFFIX,docker.io,PROXY
+```
+
+### 学习资源
+
+```yaml
+- DOMAIN-SUFFIX,coursera.org,PROXY
+- DOMAIN-SUFFIX,udemy.com,PROXY
+- DOMAIN-SUFFIX,edx.org,PROXY
+- DOMAIN-SUFFIX,khanacademy.org,PROXY
+```
+
+---
+
+## ✅ 完成
+
+使用这个配置，您可以：
+
+1. ✅ **精确控制** - 只有指定网站走代理
+2. ✅ **节省流量** - 其他全部直连
+3. ✅ **易于添加** - Web界面或命令行快速添加
+4. ✅ **实时生效** - 规则立即生效
+
+**推荐工作流程**：
+
+```
+1. 使用上面的模板配置基础规则
+2. 日常使用中遇到需要代理的网站
+3. 通过 add-proxy 命令快速添加
+4. 重启OpenClash生效
+```
+
+这样既节省流量，又能精确控制！🎯
+
+
+
+
+---
+
+
+
+# 10 - V2Ray旁路由配置
+
+## 📋 本文档内容
+
+使用Rocky Linux 9 + V2Ray/Xray实现高性能透明代理。
+
+**预计耗时**: 60分钟  
+**难度**: ⭐⭐⭐⭐☆
+
+---
+
+## 🚀 步骤1: 创建虚拟机
+
+```bash
+# 使用Rocky Linux 9 ISO（参考11-vm-nas.md步骤1）
+create-vm router 2 2 20 qcow2 \
+  /kvm/iso/Rocky-9.3-x86_64-minimal.iso \
+  192.168.71.254
+```
+
+安装时网络配置为192.168.71.254/24。
+
+---
+
+## 🔧 步骤2: 安装Xray
+
+```bash
+ssh root@192.168.71.254
+
+# 安装Xray（比V2Ray更高效）
+bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install
+```
+
+---
+
+## ⚙️ 步骤3: 转换Clash订阅
+
+### 3.1 使用订阅转换服务
+
+访问: https://sub-web.netlify.app/
+
+- 输入你的Clash订阅链接
+- 客户端选择: V2Ray
+- 后端地址: https://api.dler.io/sub
+- 点击生成订阅链接
+
+### 3.2 下载配置
+
+```bash
+curl -o /usr/local/etc/xray/config.json \
+    "转换后的订阅链接"
+
+# 或手动编辑配置文件
+vi /usr/local/etc/xray/config.json
+```
+
+---
+
+## 🌐 步骤4: 配置透明代理
+
+```bash
+# 安装iptables
+dnf install -y iptables-services
+
+# 创建透明代理脚本
+cat &gt; /usr/local/bin/setup-tproxy.sh &lt;&lt;'EOF'
+#!/bin/bash
+
+# 清空规则
+iptables -t nat -F
+iptables -t mangle -F
+
+# 本地流量直连
+iptables -t nat -A PREROUTING -s 192.168.71.0/24 -d 192.168.71.0/24 -j RETURN
+
+# 透明代理
+iptables -t nat -A PREROUTING -s 192.168.71.0/24 -p tcp -j REDIRECT --to-ports 12345
+
+# 启用IP转发
+echo 1 &gt; /proc/sys/net/ipv4/ip_forward
+
+echo "透明代理已配置"
+EOF
+
+chmod +x /usr/local/bin/setup-tproxy.sh
+```
+
+---
+
+## 🚀 步骤5: 启动服务
+
+```bash
+# 配置Xray配置文件（示例）
+cat &gt; /usr/local/etc/xray/config.json &lt;&lt;'EOF'
+{
+  "inbounds": [{
+    "port": 12345,
+    "protocol": "dokodemo-door",
+    "settings": {
+      "network": "tcp,udp",
+      "followRedirect": true
+    },
+    "streamSettings": {
+      "sockopt": {
+        "tproxy": "redirect"
+      }
+    }
+  }],
+  "outbounds": [{
+    "protocol": "vmess",
+    "settings": {
+      "vnext": [{
+        "address": "你的服务器地址",
+        "port": 443,
+        "users": [{
+          "id": "你的UUID",
+          "alterId": 0
+        }]
+      }]
+    }
+  }]
+}
+EOF
+
+# 启动服务
+systemctl enable --now xray
+systemctl status xray
+
+# 配置透明代理
+/usr/local/bin/setup-tproxy.sh
+
+# 开机自动配置
+echo "/usr/local/bin/setup-tproxy.sh" &gt;&gt; /etc/rc.local
+chmod +x /etc/rc.local
+```
+
+---
+
+## ✅ 验证
+
+```bash
+# 测试代理
+curl -x socks5://127.0.0.1:1080 https://www.google.com
+
+# 在客户端测试
+# 设置网关为192.168.71.254
+curl https://www.google.com
+```
+
+---
+
+## 📝 注意事项
+
+1. V2Ray/Xray配置较复杂，建议先学习基础
+2. 订阅转换可能不完全准确，需手动调整
+3. 性能优于OpenWrt，但配置难度更高
+4. 适合有Linux经验的用户
+
+**推荐新手先使用09文档的OpenWrt方案**
+
+---
+
+## 🎯 后续优化
+
+- 配置分流规则（国内直连）
+- 启用DNS污染防护
+- 配置流量统计
+
+👉 **[11-vm-nas.md](#section-11)**
+
+
+
+
+---
+
+
+
+# 11 - NAS文件共享服务器配置
+
+## 📋 本文档内容
+
+配置Rocky Linux 9 NAS虚拟机，提供SMB/NFS文件共享服务。
+
+**预计耗时**: 70分钟  
+**难度**: ⭐⭐⭐⭐☆
+
+---
+
+## 🚀 步骤1: 创建NAS虚拟机
+
+### 1.1 下载Rocky Linux ISO
+
+```bash
+cd /kvm/iso
+wget https://mirrors.aliyun.com/rockylinux/9/isos/x86_64/Rocky-9.3-x86_64-minimal.iso
+virsh pool-refresh iso_pool
+```
+
+### 1.2 创建虚拟机
+
+```bash
+# 创建30GB系统盘（raw格式，性能优先）
+lvcreate -V 30G --thinpool kvm_thin_pool -n nas vg_kvm
+
+# 创建虚拟机
+virt-install \
+    --name nas \
+    --ram 4096 \
+    --vcpus 2 \
+    --disk path=/dev/vg_kvm/nas,format=raw,bus=virtio \
+    --network bridge=br0,model=virtio \
+    --graphics vnc,listen=0.0.0.0 \
+    --cdrom /kvm/iso/Rocky-9.3-x86_64-minimal.iso \
+    --os-variant rhel9.0 \
+    --noautoconsole
+
+# 查看VNC端口
+virsh vncdisplay nas
+```
+
+---
+
+## ⚙️ 步骤2: 安装Rocky Linux 9
+
+通过VNC连接安装：
+
+1. **语言**: 简体中文
+2. **时区**: 亚洲/上海
+3. **软件选择**: 最小化安装
+4. **网络配置**:
+   - IP: 192.168.71.210
+   - 子网掩码: 255.255.255.0
+   - 网关: 192.168.71.1
+   - DNS: 192.168.71.1,223.5.5.5
+5. **Root密码**: 设置强密码
+6. **创建用户**: nasadmin
+
+安装完成后：
+```bash
+# 弹出光盘
+virsh change-media nas sda --eject
+
+# 设置自动启动
+virsh autostart nas
+
+# 重启
+virsh reboot nas
+```
+
+---
+
+## 🔧 步骤3: 系统初始化
+
+SSH登录：
+```bash
+ssh root@192.168.71.210
+```
+
+### 3.1 配置镜像源
+
+```bash
+# 备份原始配置
+mkdir -p /etc/yum.repos.d/backup
+mv /etc/yum.repos.d/*.repo /etc/yum.repos.d/backup/
+
+# 配置阿里云镜像
+cat &gt; /etc/yum.repos.d/rocky-aliyun.repo &lt;&lt;'EOF'
+[baseos]
+name=Rocky Linux $releasever - BaseOS
+baseurl=https://mirrors.aliyun.com/rockylinux/$releasever/BaseOS/$basearch/os/
+gpgcheck=1
+enabled=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
+
+[appstream]
+name=Rocky Linux $releasever - AppStream
+baseurl=https://mirrors.aliyun.com/rockylinux/$releasever/AppStream/$basearch/os/
+gpgcheck=1
+enabled=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
+
+[extras]
+name=Rocky Linux $releasever - Extras
+baseurl=https://mirrors.aliyun.com/rockylinux/$releasever/extras/$basearch/os/
+gpgcheck=1
+enabled=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-Rocky-9
+EOF
+
+# 更新系统
+dnf clean all
+dnf makecache
+dnf update -y
+```
+
+### 3.2 安装基础工具
+
+```bash
+dnf install -y \
+    vim \
+    wget \
+    curl \
+    htop \
+    net-tools \
+    bind-utils \
+    tree
+```
+
+---
+
+## 💾 步骤4: 挂载宿主机共享的NAS数据卷
+
+### 4.1 在宿主机配置virtio-fs
+
+在宿主机上操作：
+```bash
+ssh chris@192.168.71.200
+
+# 确认NAS数据目录存在
+ls -ld /data/nas
+
+# 编辑NAS虚拟机配置
+sudo virsh edit nas
+
+# 在&lt;devices&gt;节点内添加以下内容（在&lt;/devices&gt;前）：
+# &lt;filesystem type='mount' accessmode='passthrough'&gt;
+#   &lt;driver type='virtiofs'/&gt;
+#   &lt;source dir='/data/nas'/&gt;
+#   &lt;target dir='nas_data'/&gt;
+# &lt;/filesystem&gt;
+
+# 保存后重启虚拟机
+sudo virsh shutdown nas
+sleep 5
+sudo virsh start nas
+```
+
+### 4.2 在NAS虚拟机挂载
+
+回到NAS虚拟机：
+```bash
+ssh root@192.168.71.210
+
+# 创建挂载点
+mkdir -p /mnt/nas_data
+
+# 挂载virtio-fs
+mount -t virtiofs nas_data /mnt/nas_data
+
+# 验证
+df -h /mnt/nas_data
+ls -l /mnt/nas_data
+
+# 配置自动挂载
+echo "nas_data /mnt/nas_data virtiofs defaults 0 0" &gt;&gt; /etc/fstab
+
+# 验证fstab
+mount -a
+```
+
+---
+
+## 📂 步骤5: Samba配置（Windows/Mac/iOS访问）
+
+### 5.1 安装Samba
+
+```bash
+dnf install -y samba samba-client
+
+# 启动服务
+systemctl enable --now smb nmb
+```
+
+### 5.2 配置Samba
+
+```bash
+# 备份原始配置
+cp /etc/samba/smb.conf /etc/samba/smb.conf.bak
+
+# 创建新配置
+cat &gt; /etc/samba/smb.conf &lt;&lt;'EOF'
+[global]
+    workgroup = WORKGROUP
+    server string = Home NAS Server
+    netbios name = NAS
+    security = user
+    map to guest = bad user
+    dns proxy = no
+    # 性能优化
+    socket options = TCP_NODELAY IPTOS_LOWDELAY SO_RCVBUF=524288 SO_SNDBUF=524288
+    read raw = yes
+    write raw = yes
+    max xmit = 65535
+    dead time = 15
+    getwd cache = yes
+
+[Public]
+    comment = 公共文件夹
+    path = /mnt/nas_data/public
+    browseable = yes
+    writable = yes
+    guest ok = yes
+    create mask = 0777
+    directory mask = 0777
+
+[Private]
+    comment = 私人文件夹
+    path = /mnt/nas_data/private
+    browseable = yes
+    writable = yes
+    valid users = nasadmin
+    create mask = 0770
+    directory mask = 0770
+
+[Media]
+    comment = 媒体文件
+    path = /mnt/nas_data/media
+    browseable = yes
+    writable = yes
+    guest ok = yes
+    create mask = 0775
+    directory mask = 0775
+EOF
+
+# 创建共享目录
+mkdir -p /mnt/nas_data/{public,private,media}
+chmod 777 /mnt/nas_data/public
+chmod 770 /mnt/nas_data/private
+chmod 775 /mnt/nas_data/media
+
+# 创建Samba用户
+smbpasswd -a nasadmin
+# 输入Samba密码
+
+# 测试配置
+testparm
+
+# 重启服务
+systemctl restart smb nmb
+```
+
+### 5.3 配置防火墙
+
+```bash
+firewall-cmd --permanent --add-service=samba
+firewall-cmd --reload
+```
+
+---
+
+## 🐧 步骤6: NFS配置（Linux高性能访问）
+
+### 6.1 安装NFS
+
+```bash
+dnf install -y nfs-utils
+
+# 启动服务
+systemctl enable --now nfs-server
+```
+
+### 6.2 配置NFS导出
+
+```bash
+# 配置导出
+cat &gt; /etc/exports &lt;&lt;'EOF'
+/mnt/nas_data/public  192.168.71.0/24(rw,sync,no_subtree_check,no_root_squash)
+/mnt/nas_data/private 192.168.71.0/24(rw,sync,no_subtree_check,root_squash)
+/mnt/nas_data/media   192.168.71.0/24(rw,sync,no_subtree_check,no_root_squash)
+EOF
+
+# 使配置生效
+exportfs -arv
+
+# 查看导出
+exportfs -v
+```
+
+### 6.3 配置防火墙
+
+```bash
+firewall-cmd --permanent --add-service=nfs
+firewall-cmd --permanent --add-service=rpc-bind
+firewall-cmd --permanent --add-service=mountd
+firewall-cmd --reload
+```
+
+---
+
+## 🌐 步骤7: 客户端访问配置
+
+### 7.1 Windows访问
+
+```
+1. 打开"此电脑"
+2. 点击"映射网络驱动器"
+3. 输入: \\192.168.71.210\Public
+4. 或访问: \\192.168.71.210\Private
+   用户名: nasadmin
+   密码: &lt;Samba密码&gt;
+```
+
+### 7.2 macOS访问
+
+```
+1. Finder → 前往 → 连接服务器 (Cmd+K)
+2. 输入: smb://192.168.71.210/Public
+3. 或: smb://nasadmin@192.168.71.210/Private
+```
+
+### 7.3 Linux访问（NFS）
+
+```bash
+# 在其他Linux机器上
+sudo apt install -y nfs-common  # Ubuntu
+# 或
+sudo dnf install -y nfs-utils   # Rocky/CentOS
+
+# 挂载NFS
+sudo mkdir -p /mnt/nas_public
+sudo mount -t nfs 192.168.71.210:/mnt/nas_data/public /mnt/nas_public
+
+# 自动挂载
+echo "192.168.71.210:/mnt/nas_data/public /mnt/nas_public nfs defaults 0 0" | sudo tee -a /etc/fstab
+```
+
+### 7.4 iOS/iPadOS访问
+
+```
+使用"文件"应用:
+1. 打开"文件"应用
+2. 点击右上角"…" → 连接服务器
+3. 输入: smb://192.168.71.210
+4. 选择共享文件夹
+```
+
+---
+
+## 🔒 步骤8: 外网访问方案
+
+### 方案A: WireGuard VPN（推荐）
+
+在宿主机配置WireGuard，通过VPN访问家庭网络。
+
+### 方案B: FRP反向代理
+
+使用阿里云ECS做反向代理：
+
+```bash
+# 在阿里云ECS上安装frps
+wget https://github.com/fatedier/frp/releases/download/v0.52.0/frp_0.52.0_linux_amd64.tar.gz
+tar -xzf frp_0.52.0_linux_amd64.tar.gz
+
+# 配置服务端
+cat &gt; frps.ini &lt;&lt;'EOF'
+[common]
+bind_port = 7000
+token = your_secret_token
+EOF
+
+# 启动
+./frps -c frps.ini
+
+# 在宿主机安装frpc
+wget https://github.com/fatedier/frp/releases/download/v0.52.0/frp_0.52.0_linux_amd64.tar.gz
+tar -xzf frp_0.52.0_linux_amd64.tar.gz
+
+# 配置客户端
+cat &gt; frpc.ini &lt;&lt;'EOF'
+[common]
+server_addr = &lt;阿里云ECS公网IP&gt;
+server_port = 7000
+token = your_secret_token
+
+[nas-smb]
+type = tcp
+local_ip = 192.168.71.210
+local_port = 445
+remote_port = 8445
+EOF
+
+# 启动
+./frpc -c frpc.ini
+```
+
+---
+
+## 📊 步骤9: 监控和维护
+
+### 9.1 磁盘使用监控
+
+```bash
+# 创建监控脚本
+cat &gt; /usr/local/bin/nas-monitor &lt;&lt;'EOF'
+#!/bin/bash
+echo "=== NAS存储监控 ==="
+df -h /mnt/nas_data
+echo ""
+echo "=== Samba连接 ==="
+smbstatus -b
+echo ""
+echo "=== NFS连接 ==="
+showmount -a
+EOF
+
+chmod +x /usr/local/bin/nas-monitor
+```
+
+### 9.2 日志查看
+
+```bash
+# Samba日志
+tail -f /var/log/samba/log.smbd
+
+# NFS日志
+journalctl -u nfs-server -f
+```
+
+---
+
+## ✅ 验证和测试
+
+```bash
+# 在NAS虚拟机上
+nas-monitor
+
+# 在Windows上
+net use \\192.168.71.210\Public
+
+# 在Linux上
+showmount -e 192.168.71.210
+```
+
+---
+
+## 📝 完成检查清单
+
+- [x] Rocky Linux 9安装完成
+- [x] virtio-fs挂载宿主机数据卷
+- [x] Samba配置（Windows/Mac/iOS访问）
+- [x] NFS配置（Linux高性能访问）
+- [x] 防火墙配置
+- [x] 客户端访问测试
+- [x] 外网访问方案了解
+- [x] 监控脚本配置
+
+---
+
+## 🎯 使用场景
+
+### 日常文件共享
+```
+Windows电脑 → \\192.168.71.210\Public
+Mac电脑 → smb://192.168.71.210/Public
+iPhone/iPad → 文件App连接服务器
+Linux开发机 → NFS挂载
+```
+
+### 媒体存储
+```
+将电影、照片放入Media共享
+各设备可直接访问和播放
+```
+
+👉 **[12-backup-restore.md - 备份恢复](#section-12)**
+
+
+
+
+---
+
+
+
+# 12 - 备份和恢复策略
+
+## 📋 备份策略
+
+### 三层备份方案
+
+**层次1: 虚拟机配置备份（每周）**
+- 虚拟机XML定义
+- 存储池配置
+- 网络配置
+
+**层次2: 重要数据备份（每天）**
+- NAS共享数据
+- 数据库
+- 应用配置文件
+
+**层次3: 完整镜像备份（每月）**
+- 虚拟机磁盘快照
+- 系统完整镜像
+
+---
+
+## 🔄 自动备份脚本
+
+### 虚拟机配置备份
+
+```bash
+sudo cat &gt; /usr/local/bin/backup-vm-configs &lt;&lt;'EOF'
+#!/bin/bash
+
+BACKUP_DIR="/backup/vm-configs"
+DATE=$(date +%Y%m%d)
+BACKUP_PATH="$BACKUP_DIR/$DATE"
+
+mkdir -p $BACKUP_PATH
+
+# 备份虚拟机定义
+for vm in $(virsh list --all --name); do
+    [ -n "$vm" ] &amp;&amp; virsh dumpxml $vm &gt; $BACKUP_PATH/${vm}.xml
+done
+
+# 备份存储池配置
+for pool in $(virsh pool-list --all --name); do
+    [ -n "$pool" ] &amp;&amp; virsh pool-dumpxml $pool &gt; $BACKUP_PATH/pool-${pool}.xml
+done
+
+# 备份网络配置
+for net in $(virsh net-list --all --name); do
+    [ -n "$net" ] &amp;&amp; virsh net-dumpxml $net &gt; $BACKUP_PATH/net-${net}.xml
+done
+
+# 备份LVM配置
+vgcfgbackup -f $BACKUP_PATH/vg_kvm.cfg vg_kvm
+
+# 压缩
+tar -czf $BACKUP_DIR/vm-configs-${DATE}.tar.gz -C $BACKUP_DIR $DATE
+rm -rf $BACKUP_PATH
+
+# 只保留最近30天的备份
+find $BACKUP_DIR -name "vm-configs-*.tar.gz" -mtime +30 -delete
+
+echo "备份完成: $BACKUP_DIR/vm-configs-${DATE}.tar.gz"
+EOF
+
+sudo chmod +x /usr/local/bin/backup-vm-configs
+```
+
+### NAS数据备份
+
+```bash
+sudo cat &gt; /usr/local/bin/backup-nas-data &lt;&lt;'EOF'
+#!/bin/bash
+
+SOURCE="/data/nas"
+BACKUP_DIR="/backup/nas-data"
+DATE=$(date +%Y%m%d)
+
+# 使用rsync增量备份
+rsync -av --delete \
+    --exclude='*.tmp' \
+    --exclude='.Trash' \
+    $SOURCE/ $BACKUP_DIR/latest/
+
+# 创建硬链接快照（节省空间）
+cp -al $BACKUP_DIR/latest $BACKUP_DIR/$DATE
+
+echo "NAS数据备份完成: $BACKUP_DIR/$DATE"
+EOF
+
+sudo chmod +x /usr/local/bin/backup-nas-data
+```
+
+### 虚拟机快照备份
+
+```bash
+# 为虚拟机创建快照
+sudo cat &gt; /usr/local/bin/vm-snapshot &lt;&lt;'EOF'
+#!/bin/bash
+
+VM_NAME=$1
+SNAPSHOT_NAME="snap-$(date +%Y%m%d-%H%M%S)"
+
+if [ -z "$VM_NAME" ]; then
+    echo "用法: vm-snapshot &lt;vm-name&gt;"
+    exit 1
+fi
+
+virsh snapshot-create-as $VM_NAME $SNAPSHOT_NAME \
+    --description "Auto snapshot $(date)"
+
+echo "快照创建成功: $SNAPSHOT_NAME"
+EOF
+
+sudo chmod +x /usr/local/bin/vm-snapshot
+```
+
+---
+
+## ⏰ 定时备份
+
+```bash
+# 配置crontab
+sudo crontab -e
+
+# 添加以下内容:
+
+# 每周日凌晨2点备份VM配置
+0 2 * * 0 /usr/local/bin/backup-vm-configs
+
+# 每天凌晨3点备份NAS数据
+0 3 * * * /usr/local/bin/backup-nas-data
+
+# 每月1号凌晨4点创建VM快照
+0 4 1 * * /usr/local/bin/vm-snapshot nas
+0 4 1 * * /usr/local/bin/vm-snapshot web-app
+```
+
+---
+
+## 🔙 恢复流程
+
+### 恢复虚拟机配置
+
+```bash
+# 解压备份
+cd /backup/vm-configs
+tar -xzf vm-configs-20260224.tar.gz
+
+# 恢复虚拟机
+virsh define 20260224/nas.xml
+virsh define 20260224/web-app.xml
+
+# 恢复存储池
+virsh pool-define 20260224/pool-kvm_pool.xml
+virsh pool-start kvm_pool
+```
+
+### 恢复虚拟机快照
+
+```bash
+# 列出快照
+virsh snapshot-list nas
+
+# 恢复快照
+virsh snapshot-revert nas snap-20260224-020000
+
+# 删除旧快照
+virsh snapshot-delete nas snap-20260101-020000
+```
+
+### 恢复NAS数据
+
+```bash
+# 从备份恢复
+rsync -av /backup/nas-data/20260224/ /data/nas/
+```
+
+---
+
+## 💾 离线备份建议
+
+### 重要数据外部备份
+
+```bash
+# 每月备份到移动硬盘
+rsync -av --progress \
+    /backup/vm-configs/ \
+    /mnt/external-hdd/backup/vm-configs/
+
+rsync -av --progress \
+    /data/nas/important/ \
+    /mnt/external-hdd/backup/nas-important/
+```
+
+---
+
+## ✅ 备份验证
+
+```bash
+# 定期验证备份可用性
+sudo cat &gt; /usr/local/bin/verify-backup &lt;&lt;'EOF'
+#!/bin/bash
+
+echo "=== 备份验证 ==="
+echo "VM配置备份:"
+ls -lh /backup/vm-configs/ | tail -5
+
+echo ""
+echo "NAS数据备份:"
+du -sh /backup/nas-data/latest
+
+echo ""
+echo "磁盘空间:"
+df -h | grep backup
+EOF
+
+sudo chmod +x /usr/local/bin/verify-backup
+```
+
+---
+
+## 📝 完成
+
+备份策略已配置完成！
+
+建议每月运行一次恢复测试，确保备份可用。
+
+
+
+
+---
+
+
+
+# 13 - 系统维护指南
+
+## 📋 本文档内容
+
+正确的开关机流程、日常维护和故障恢复。
+
+---
+
+## 🔌 正确的关机流程
+
+### 计划性关机（推荐）
+
+```bash
+# 1. 优雅关闭所有虚拟机
+vm-manager stop-all
+
+# 等待所有VM关闭(约1-2分钟)
+watch -n 2 'virsh list --all'
+
+# 2. 关闭宿主机
+sudo shutdown -h now
+# 或定时关机
+sudo shutdown -h +10  # 10分钟后关机
+```
+
+### 紧急关机
+
+```bash
+# 强制关闭所有VM
+for vm in $(virsh list --name); do
+    virsh destroy $vm
+done
+
+# 立即关机
+sudo poweroff
+```
+
+---
+
+## 🔄 开机和恢复流程
+
+### 正常开机
+
+1. **按下电源按钮**
+2. **宿主机启动** (约30-60秒)
+3. **自动启动配置的VM** (已设置autostart的虚拟机)
+
+### 验证系统启动
+
+```bash
+# SSH登录宿主机
+ssh chris@192.168.71.200
+
+# 检查系统状态
+sysinfo
+
+# 检查虚拟机状态
+vm-manager status
+
+# 检查存储
+storage-monitor
+
+# 检查网络
+ping -c 3 192.168.71.1
+```
+
+### 手动启动未自动启动的VM
+
+```bash
+# 启动开发VM
+vm-manager start python-dev
+
+# 或使用virsh
+virsh start python-dev
+```
+
+---
+
+## 🔧 日常维护任务
+
+### 每周检查清单
+
+```bash
+cat &gt; /root/weekly-check.sh &lt;&lt;'EOF'
+#!/bin/bash
+
+echo "========================================="
+echo "       每周系统检查"
+echo "========================================="
+date
+echo ""
+
+echo "1. 系统负载和内存"
+uptime
+free -h
+echo ""
+
+echo "2. 磁盘使用"
+df -h | grep -E 'Filesystem|vg_kvm|/data'
+echo ""
+
+echo "3. Thin Pool状态"
+lvs -a vg_kvm | grep -E 'LV|thin'
+echo ""
+
+echo "4. 虚拟机状态"
+virsh list --all
+echo ""
+
+echo "5. 系统更新检查"
+dnf check-update | head -20
+echo ""
+
+echo "检查完成!"
+EOF
+
+chmod +x /root/weekly-check.sh
+```
+
+运行: `sudo /root/weekly-check.sh`
+
+### 每月维护任务
+
+```bash
+# 1. 系统更新
+sudo dnf update -y
+
+# 2. 清理旧内核
+sudo dnf remove $(dnf repoquery --installonly --latest-limit=-2 -q)
+
+# 3. 检查日志大小
+sudo journalctl --disk-usage
+# 如果过大，清理
+sudo journalctl --vacuum-time=30d
+
+# 4. 检查失败的服务
+systemctl --failed
+
+# 5. 备份重要VM配置
+for vm in $(virsh list --name --all); do
+    virsh dumpxml $vm &gt; /backup/vms/${vm}.xml
+done
+```
+
+---
+
+## 📅 自动化维护脚本
+
+### 创建自动维护脚本
+
+```bash
+sudo cat &gt; /usr/local/bin/auto-maintain &lt;&lt;'EOF'
+#!/bin/bash
+
+LOG_FILE="/var/log/auto-maintain.log"
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a $LOG_FILE
+}
+
+log "开始自动维护"
+
+# 清理旧日志
+log "清理系统日志..."
+journalctl --vacuum-time=30d &gt;&gt; $LOG_FILE 2&gt;&amp;1
+
+# 清理包缓存
+log "清理包缓存..."
+dnf clean all &gt;&gt; $LOG_FILE 2&gt;&amp;1
+
+# 检查并记录磁盘使用
+log "磁盘使用情况:"
+df -h | grep -E 'Filesystem|vg_kvm|/data' | tee -a $LOG_FILE
+
+# 检查thin pool
+log "Thin pool状态:"
+lvs -a vg_kvm | grep thin | tee -a $LOG_FILE
+
+log "维护完成"
+echo ""
+EOF
+
+sudo chmod +x /usr/local/bin/auto-maintain
+```
+
+### 配置定时任务
+
+```bash
+# 编辑crontab
+sudo crontab -e
+
+# 添加以下内容:
+# 每周日凌晨3点执行维护
+0 3 * * 0 /usr/local/bin/auto-maintain
+
+# 每天检查备份
+0 2 * * * /usr/local/bin/vm-backup nas
+```
+
+---
+
+## 🚨 故障恢复
+
+### 虚拟机启动失败
+
+```bash
+# 1. 查看错误日志
+virsh start &lt;vm-name&gt;
+tail -50 /var/log/libvirt/qemu/&lt;vm-name&gt;.log
+
+# 2. 常见原因
+# - 磁盘路径不存在
+# - 存储池未启动
+# - 网络配置错误
+
+# 3. 修复存储池
+virsh pool-start kvm_pool
+
+# 4. 检查磁盘
+virsh domblklist &lt;vm-name&gt;
+ls -l /dev/vg_kvm/
+```
+
+### 网桥网络故障
+
+```bash
+# 1. 检查网桥状态
+ip addr show br0
+nmcli connection show br0
+
+# 2. 重启网桥
+sudo nmcli connection down br0
+sudo nmcli connection up br0-slave
+sudo nmcli connection up br0
+
+# 3. 重启网络服务
+sudo systemctl restart NetworkManager
+```
+
+### 存储空间满
+
+```bash
+# 1. 检查使用情况
+lvs -a vg_kvm
+df -h
+
+# 2. 扩展thin pool
+sudo lvextend -L +100G vg_kvm/kvm_thin_pool
+
+# 3. 清理虚拟机快照
+virsh snapshot-list &lt;vm-name&gt;
+virsh snapshot-delete &lt;vm-name&gt; &lt;snapshot-name&gt;
+
+# 4. 在VM内执行fstrim释放空间
+# (在虚拟机内运行)
+sudo fstrim -av
+```
+
+---
+
+## 💾 备份策略
+
+### 重要配置备份
+
+```bash
+sudo cat &gt; /usr/local/bin/backup-config &lt;&lt;'EOF'
+#!/bin/bash
+
+BACKUP_DIR="/backup/config/$(date +%Y%m%d)"
+mkdir -p $BACKUP_DIR
+
+# 备份网络配置
+cp -r /etc/NetworkManager/system-connections/ $BACKUP_DIR/
+
+# 备份LVM配置
+vgcfgbackup -f $BACKUP_DIR/vg_kvm.cfg vg_kvm
+
+# 备份虚拟机定义
+for vm in $(virsh list --name --all); do
+    virsh dumpxml $vm &gt; $BACKUP_DIR/${vm}.xml
+done
+
+# 备份存储池定义
+for pool in $(virsh pool-list --name --all); do
+    virsh pool-dumpxml $pool &gt; $BACKUP_DIR/pool-${pool}.xml
+done
+
+# 备份自定义脚本
+cp -r /usr/local/bin/ $BACKUP_DIR/scripts/
+
+echo "配置备份完成: $BACKUP_DIR"
+tar -czf /backup/config-$(date +%Y%m%d).tar.gz -C /backup/config $(date +%Y%m%d)
+EOF
+
+sudo chmod +x /usr/local/bin/backup-config
+```
+
+---
+
+## 🔍 健康检查脚本
+
+```bash
+sudo cat &gt; /usr/local/bin/health-check &lt;&lt;'EOF'
+#!/bin/bash
+
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+NC='\033[0m'
+
+check() {
+    if $1 &amp;&gt;/dev/null; then
+        echo -e "${GREEN}✓${NC} $2"
+        return 0
+    else
+        echo -e "${RED}✗${NC} $2"
+        return 1
+    fi
+}
+
+echo "系统健康检查"
+echo "======================="
+
+check "systemctl is-active libvirtd" "libvirtd服务"
+check "systemctl is-active firewalld" "防火墙服务"
+check "systemctl is-active chronyd" "时间同步"
+check "ping -c 1 192.168.71.1" "网关连通性"
+check "virsh pool-info kvm_pool" "KVM存储池"
+check "[ $(df /data/nas | tail -1 | awk '{print $5}' | sed 's/%//') -lt 90 ]" "NAS存储空间"
+
+echo ""
+echo "虚拟机状态:"
+virsh list --all
+
+echo ""
+echo "负载: $(uptime | awk -F'load average:' '{print $2}')"
+free -h | grep Mem
+EOF
+
+sudo chmod +x /usr/local/bin/health-check
+```
+
+---
+
+## 📝 完成
+
+系统维护指南已准备就绪！
+
+**日常使用**:
+- 定期运行 `health-check`
+- 每周查看 `weekly-check.sh`
+- 重要操作前运行 `backup-config`
+
+**紧急情况**:
+- 参考故障恢复章节
+- 查看 [14-troubleshooting.md](#section-14)
+
+👉 **相关文档: [12-backup-restore.md](#section-12)**
+
+
+
+
+---
+
+
+
+# 14 - 常见问题排查
+
+## 📋 本文档内容
+
+解答您在kickoff.md中提出的零碎问题和常见故障排查。
+
+---
+
+## ❓ 问题1: 内存显示27G而不是32G的原因
+
+### 分析
+
+您购买了32GB内存(16GB×2)，但系统显示约27GB可用。少了约5GB的原因：
+
+### 可能原因
+
+#### 1. 集成显卡显存占用 (最可能)
+
+AMD R5 5600G是APU(集成显卡)，会从系统内存中分配显存。
+
+```bash
+# 查看实际情况
+sudo dmidecode -t memory | grep -i size
+free -h
+```
+
+**典型配置**:
+- BIOS默认给集显分配2-4GB
+- 可在BIOS中调整UMA (Unified Memory Architecture) Frame Buffer Size
+
+**解决方案**:
+```
+进入BIOS → Advanced → UMA Frame Buffer Size
+选项: Auto / 512M / 1G / 2G / 4G等
+
+建议:
+- 如果不用显示输出: 设置为512M或最小值
+- 如果需要偶尔调试: 保持1-2G
+```
+
+#### 2. 硬件预留内存
+
+```bash
+# 查看内存详情
+cat /proc/meminfo | grep -i mem
+```
+
+部分内存被硬件/内核预留用于:
+- DMA缓冲区
+- 内核代码和数据
+- 硬件映射区域
+
+这部分通常占用几百MB，是正常的。
+
+#### 3. 内存确认
+
+```bash
+# 验证物理内存
+sudo dmidecode -t 17 | grep -i size
+
+# 应该显示两条16GB内存
+```
+
+### 总结
+
+**27GB可用内存是正常的**:
+- 约4-5GB给了集成显卡
+- 约500MB被内核预留
+- 实际可用约27-28GB
+
+**如果需要更多内存**:
+1. 进BIOS调低显存分配
+2. 重启后验证: `free -h`
+
+---
+
+## 🖥️ 问题2: 无头模式下远程BIOS访问方案
+
+### 背景
+
+您的服务器没有接显示器键盘(无头模式)，需要调试时搬设备很麻烦。
+
+### 方案对比
+
+| 方案 | 成本 | 难度 | 功能 |
+|------|------|------|------|
+| IPMI | $$$ | ⭐⭐⭐ | 完整(最佳) |
+| PiKVM | $$ | ⭐⭐⭐⭐ | 完整 |
+| 软件KVM | $ | ⭐⭐ | 系统启动后 |
+| GRUB串口 | $0 | ⭐⭐⭐ | 有限 |
+
+### 推荐方案1: IPMI (如果主板支持)
+
+MSI B550M PRO-VDH **不支持IPMI**，此方案不适用。
+
+### 推荐方案2: PiKVM (最实用)
+
+使用树莓派Zero 2W制作KVM over IP设备。
+
+**所需硬件**:
+- 树莓派 Zero 2W (约150元)
+- HDMI 采集卡 (约50元)
+- USB OTG线 (约20元)
+- Micro SD卡 (约30元)
+
+**总成本**: 约250元
+
+**优点**:
+- 完全远程控制BIOS
+- 虚拟键鼠
+- 远程开机/关机
+- ISO挂载
+
+**缺点**:
+- 需要额外硬件
+- 需要服务器有HDMI输出
+
+### 推荐方案3: GRUB串口重定向 (零成本临时方案)
+
+通过SSH访问GRUB菜单(但无法访问BIOS)。
+
+```bash
+# 在宿主机配置
+sudo vim /etc/default/grub
+
+# 添加
+GRUB_TERMINAL="console serial"
+GRUB_SERIAL_COMMAND="serial --speed=115200"
+GRUB_CMDLINE_LINUX="console=tty0 console=ttyS0,115200n8"
+
+# 更新GRUB
+sudo grub2-mkconfig -o /boot/grub2/grub.cfg
+```
+
+**限制**: 只能访问GRUB，无法访问BIOS。
+
+### 实际建议
+
+**短期方案**:
+- 保持现状，需要进BIOS时搬设备(一年1-2次)
+- 通过Cockpit Web管理日常操作
+
+**长期方案**:
+- 如果经常需要调试: 购买PiKVM套件(250元)
+- 或购买支持IPMI的服务器级主板(下次升级)
+
+**我的建议**:
+家用服务器很少需要进BIOS，保持现状即可。如果后续发现频繁需要，再考虑PiKVM。
+
+---
+
+## 🔧 常见技术问题排查
+
+### 问题: SSH连接慢
+
+```bash
+# 症状: ssh连接需要10-20秒
+# 原因: DNS反向解析
+
+# 解决:
+sudo vim /etc/ssh/sshd_config
+# 添加:
+UseDNS no
+
+sudo systemctl restart sshd
+```
+
+### 问题: 虚拟机无法联网
+
+```bash
+# 1. 检查网桥
+ip addr show br0
+bridge link show
+
+# 2. 检查虚拟机网络
+virsh domiflist &lt;vm-name&gt;
+
+# 3. 在虚拟机内检查
+ip addr
+ip route
+ping 192.168.71.1
+```
+
+### 问题: 存储空间不足
+
+```bash
+# 检查thin pool使用率
+lvs -a vg_kvm
+
+# 如果超过80%
+lvextend -L +100G vg_kvm/kvm_thin_pool
+```
+
+### 问题: 虚拟机性能差
+
+```bash
+# 检查是否使用了virtio驱动
+virsh dumpxml &lt;vm&gt; | grep -i driver
+
+# 启用virtio-scsi (更好的磁盘性能)
+# 编辑VM配置添加virtio-scsi控制器
+```
+
+### 问题: 时间不同步
+
+```bash
+# 宿主机
+sudo systemctl status chronyd
+chronyc tracking
+
+# 虚拟机内
+sudo apt install chrony
+sudo systemctl enable --now chrony
+```
+
+---
+
+## 📞 获取帮助
+
+### 日志位置
+
+```bash
+# 系统日志
+journalctl -xe
+journalctl -u libvirtd
+
+# 虚拟机日志
+cat /var/log/libvirt/qemu/&lt;vm-name&gt;.log
+
+# 内核日志
+dmesg | tail -50
+```
+
+### 收集诊断信息
+
+```bash
+# 运行诊断脚本
+virt-host-validate
+/root/verify-kvm-setup.sh
+/root/verify-storage.sh
+
+# 系统信息
+sysinfo
+storage-monitor
+vm-manager status
+```
+
+---
+
+## 📝 完成
+
+常见问题已解答！
+
+**关键要点**:
+1. ✅ 27GB内存是正常的(显卡占用约5GB)
+2. ✅ 暂时保持现状，需要时手动进BIOS
+3. ✅ 长期可考虑PiKVM方案
+4. ✅ 掌握了常见问题排查方法
+
+            </article>
+        </main>
+        
+        <!-- 回到顶部按钮 -->
+        <div class="back-to-top" id="backToTop">↑</div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+    <script>
+        // 配置 marked - 使用异步初始化
+        marked.use({
+            breaks: true,
+            gfm: true,
+            pedantic: false,
+            headerIds: true,
+            mangle: false
+        });
+        
+        // 渲染Markdown内容
+        function renderMarkdown() {
+            const content = document.getElementById('content');
+            const rawContent = content.textContent;
+            content.innerHTML = marked.parse(rawContent);
+            
+            // 代码高亮
+            content.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+            
+            // 生成导航
+            generateNav();
+        }
+        
+        // 生成导航
+        function generateNav() {
+            const navList = document.getElementById('nav-list');
+            const content = document.getElementById('content');
+            const sections = content.querySelectorAll('h1');
+            
+            navList.innerHTML = '';
+            
+            sections.forEach((section, index) => {
+                const id = 'section-' + index;
+                section.id = id;
+                
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = '#' + id;
+                a.textContent = section.textContent;
+                a.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    // 使用更快的滚动效果
+                    const targetPosition = section.offsetTop - 20;
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
+                    });
+                    setTimeout(updateActiveNav, 300);
+                });
+                
+                li.appendChild(a);
+                navList.appendChild(li);
+            });
+        }
+        
+        // 更新活动导航项
+        function updateActiveNav() {
+            const sections = document.querySelectorAll('h1');
+            const navLinks = document.querySelectorAll('.nav-list a');
+            
+            let currentSection = '';
+            sections.forEach(section => {
+                const rect = section.getBoundingClientRect();
+                if (rect.top <= 100) {
+                    currentSection = section.id;
+                }
+            });
+            
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + currentSection) {
+                    link.classList.add('active');
+                }
+            });
+        }
+        
+        // 回到顶部
+        const backToTop = document.getElementById('backToTop');
+        window.addEventListener('scroll', function() {
+            if (window.scrollY > 300) {
+                backToTop.classList.add('visible');
+            } else {
+                backToTop.classList.remove('visible');
+            }
+            
+            updateActiveNav();
+        });
+        
+        backToTop.addEventListener('click', function() {
+            // 快速滚动到顶部
+            window.scrollTo({
+                top: 0,
+                behavior: 'auto'  // 使用auto实现即时滚动
+            });
+        });
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            renderMarkdown();
+            updateActiveNav();
+        });
+    </script>
+</body>
+</html>
