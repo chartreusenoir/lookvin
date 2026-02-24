@@ -27,11 +27,54 @@
             background: var(--bg-color);
             color: var(--text-color);
             line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
         
         .container {
             display: flex;
             min-height: 100vh;
+        }
+        
+        /* 移动端菜单按钮 */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1001;
+            background: var(--nav-active);
+            color: white;
+            width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: background 0.3s;
+        }
+        
+        .menu-toggle:active {
+            background: #1158c7;
+        }
+        
+        /* 遮罩层 */
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .overlay.visible {
+            opacity: 1;
         }
         
         /* 侧边导航栏 */
@@ -43,6 +86,7 @@
             height: 100vh;
             overflow-y: auto;
             padding: 20px;
+            z-index: 1000;
         }
         
         .sidebar h2 {
@@ -136,6 +180,9 @@
             border-collapse: collapse;
             width: 100%;
             margin: 16px 0;
+            display: block;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
         
         .markdown-body table th,
@@ -189,11 +236,35 @@
             background: #1158c7;
         }
         
-        /* 响应式 */
+        /* 平板适配 */
         @media (max-width: 1024px) {
             .sidebar {
-                transform: translateX(-300px);
-                transition: transform 0.3s;
+                width: 280px;
+            }
+            
+            .main-content {
+                margin-left: 280px;
+                padding: 30px 40px;
+            }
+        }
+        
+        /* 移动端适配 */
+        @media (max-width: 768px) {
+            .menu-toggle {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .overlay {
+                display: block;
+            }
+            
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-out;
+                width: 280px;
+                box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
             }
             
             .sidebar.open {
@@ -202,27 +273,114 @@
             
             .main-content {
                 margin-left: 0;
-                padding: 20px;
+                padding: 70px 20px 20px 20px;
+                width: 100%;
+            }
+            
+            .markdown-body {
+                font-size: 15px;
+            }
+            
+            .markdown-body h1 {
+                font-size: 1.8em;
+                margin-top: 30px;
+            }
+            
+            .markdown-body h2 {
+                font-size: 1.5em;
+                margin-top: 24px;
+            }
+            
+            .markdown-body h3 {
+                font-size: 1.3em;
+            }
+            
+            .markdown-body pre {
+                font-size: 13px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .markdown-body code {
+                font-size: 13px;
+                word-wrap: break-word;
+            }
+            
+            .back-to-top {
+                bottom: 20px;
+                right: 20px;
+                width: 44px;
+                height: 44px;
+                font-size: 20px;
+            }
+        }
+        
+        /* 小屏手机适配 */
+        @media (max-width: 480px) {
+            .sidebar {
+                width: 85%;
+                max-width: 280px;
+            }
+            
+            .main-content {
+                padding: 60px 15px 15px 15px;
+            }
+            
+            .markdown-body {
+                font-size: 14px;
+            }
+            
+            .markdown-body h1 {
+                font-size: 1.6em;
+            }
+            
+            .markdown-body h2 {
+                font-size: 1.4em;
+            }
+            
+            .markdown-body h3 {
+                font-size: 1.2em;
+            }
+            
+            .markdown-body pre {
+                font-size: 12px;
+            }
+            
+            .markdown-body table {
+                font-size: 13px;
             }
         }
         
         /* 打印样式 */
         @media print {
             .sidebar,
-            .back-to-top {
+            .back-to-top,
+            .menu-toggle,
+            .overlay {
                 display: none;
             }
             
             .main-content {
                 margin-left: 0;
+                padding: 0;
+            }
+            
+            .markdown-body {
+                font-size: 12pt;
             }
         }
     </style>
 </head>
 <body>
+    <!-- 移动端菜单按钮 -->
+    <button class="menu-toggle" id="menuToggle">☰</button>
+    
+    <!-- 遮罩层 -->
+    <div class="overlay" id="overlay"></div>
+    
     <div class="container">
         <!-- 侧边导航 -->
-        <nav class="sidebar">
+        <nav class="sidebar" id="sidebar">
             <h2>📚 文档导航</h2>
             <ul class="nav-list" id="nav-list">
                 <!-- 导航项将由JavaScript生成 -->
@@ -1619,6 +1777,271 @@ nmcli connection show
 
 ⚠️ **重要**: 以下操作会短暂中断网络连接，确保您是通过本地操作或有备用连接方式！
 
+**选择以下两种方式之一**：
+- **方式 A（推荐）**：使用自动化脚本（见 4.2.1）- 更安全，带备份和回滚
+- **方式 B**：手动执行命令（见 4.2.2）- 适合理解每一步操作
+
+#### 4.2.1 使用自动化脚本创建网桥（推荐）
+
+**步骤 1：创建脚本文件**
+
+```bash
+# 创建脚本
+cat &gt; /root/create-bridge.sh &lt;&lt;'EOF'
+#!/bin/bash
+# 脚本名称：create-bridge.sh
+# 功能：创建 KVM 网桥配置
+# 使用方法：
+#   1. 修改下方【配置区】的变量
+#   2. 以 root 运行：sudo bash create-bridge.sh
+#   3. 确认参数后输入 yes
+#   4. 如果出错，运行生成的 rollback-bridge.sh 恢复
+
+#==================== 配置区 ====================
+# ⬇️ 请根据实际情况修改这里
+BRIDGE_NAME="br0"
+PHYSICAL_INTERFACE="enp1s0"     # 物理网卡名称
+HOST_IP="192.168.71.200"        # 宿主机IP
+GATEWAY="192.168.71.1"          # 网关
+DNS1="192.168.71.1"             # 主DNS
+DNS2="223.5.5.5"                # 备用DNS（阿里）
+#================================================
+
+# 颜色定义（美化输出）
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# 日志函数
+log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
+log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+
+# 检查 root 权限
+if [[ $EUID -ne 0 ]]; then
+   log_error "必须以 root 运行此脚本"
+   echo "请使用: sudo bash $0"
+   exit 1
+fi
+
+# 显示配置摘要
+echo "========================================="
+echo "    KVM 网桥配置脚本"
+echo "========================================="
+echo ""
+echo "即将执行以下配置："
+echo "  网桥名称:     $BRIDGE_NAME"
+echo "  物理网卡:     $PHYSICAL_INTERFACE"
+echo "  宿主机IP:     $HOST_IP/24"
+echo "  网关地址:     $GATEWAY"
+echo "  DNS 服务器:   $DNS1, $DNS2"
+echo ""
+log_warn "⚠️  此操作将修改网络配置，可能导致短暂断网"
+echo ""
+
+# SSH 会话检测
+if [ -n "$SSH_CONNECTION" ]; then
+    log_warn "⚠️  检测到您通过 SSH 连接！"
+    echo "     如果配置失败，SSH 会话将断开"
+    echo "     建议准备好物理访问或带外管理"
+    echo ""
+fi
+
+# 用户确认
+read -p "是否继续？输入 yes 确认: " CONFIRM
+if [[ "$CONFIRM" != "yes" ]]; then
+    log_info "操作已取消"
+    exit 0
+fi
+
+echo ""
+log_info "开始执行..."
+
+# 1. 备份当前配置
+BACKUP_DIR="/root/network-backup-$(date +%Y%m%d-%H%M%S)"
+log_info "备份网络配置到: $BACKUP_DIR"
+cp -r /etc/NetworkManager/system-connections/ "$BACKUP_DIR"
+log_success "备份完成"
+
+# 2. 生成回滚脚本
+ROLLBACK_SCRIPT="/root/rollback-bridge.sh"
+log_info "生成回滚脚本: $ROLLBACK_SCRIPT"
+
+cat &gt; "$ROLLBACK_SCRIPT" &lt;&lt;'ROLLBACK_EOF'
+#!/bin/bash
+# 网桥配置回滚脚本
+# 自动生成于: $(date)
+
+echo "正在回滚网桥配置..."
+
+# 删除网桥连接
+nmcli connection delete br0 2&gt;/dev/null
+nmcli connection delete br0-slave 2&gt;/dev/null
+
+# 恢复备份（需要手动指定备份目录）
+echo "请手动恢复备份："
+echo "  cp -r BACKUP_DIR/* /etc/NetworkManager/system-connections/"
+echo "  nmcli connection reload"
+echo "  systemctl restart NetworkManager"
+
+echo "或者重新配置原网卡："
+echo "  nmcli connection add type ethernet con-name PHYSICAL_INTERFACE ifname PHYSICAL_INTERFACE"
+ROLLBACK_EOF
+
+chmod +x "$ROLLBACK_SCRIPT"
+log_success "回滚脚本已生成"
+
+# 3. 创建网桥
+log_info "创建网桥 $BRIDGE_NAME..."
+nmcli connection add type bridge \
+    con-name "$BRIDGE_NAME" \
+    ifname "$BRIDGE_NAME" \
+    ipv4.method manual \
+    ipv4.addresses "$HOST_IP/24" \
+    ipv4.gateway "$GATEWAY" \
+    ipv4.dns "$DNS1 $DNS2"
+
+if [ $? -eq 0 ]; then
+    log_success "网桥创建成功"
+else
+    log_error "网桥创建失败！"
+    exit 1
+fi
+
+# 4. 添加物理网卡为 slave
+log_info "将 $PHYSICAL_INTERFACE 添加到网桥..."
+nmcli connection add type bridge-slave \
+    con-name "${BRIDGE_NAME}-slave" \
+    ifname "$PHYSICAL_INTERFACE" \
+    master "$BRIDGE_NAME"
+
+if [ $? -eq 0 ]; then
+    log_success "Slave 添加成功"
+else
+    log_error "Slave 添加失败！"
+    exit 1
+fi
+
+# 5. 禁用原有连接
+log_info "禁用原有的物理网卡连接..."
+OLD_CONNECTION=$(nmcli -g NAME,DEVICE connection show | grep "$PHYSICAL_INTERFACE" | grep -v slave | cut -d: -f1)
+if [ -n "$OLD_CONNECTION" ]; then
+    log_info "找到旧连接: $OLD_CONNECTION"
+    nmcli connection down "$OLD_CONNECTION"
+    nmcli connection delete "$OLD_CONNECTION"
+    log_success "旧连接已删除"
+else
+    log_warn "未找到旧连接（可能已删除）"
+fi
+
+# 6. 启动网桥
+log_info "启动网桥连接..."
+nmcli connection up "${BRIDGE_NAME}-slave"
+nmcli connection up "$BRIDGE_NAME"
+
+if [ $? -eq 0 ]; then
+    log_success "网桥已启动"
+else
+    log_error "网桥启动失败！请检查配置"
+    echo "可以运行回滚脚本: $ROLLBACK_SCRIPT"
+    exit 1
+fi
+
+# 7. 等待网络稳定
+log_info "等待网络稳定..."
+sleep 5
+
+# 8. 验证配置
+echo ""
+echo "========================================="
+echo "    配置完成，验证结果："
+echo "========================================="
+echo ""
+
+# 检查网桥状态
+log_info "网桥接口状态:"
+ip addr show "$BRIDGE_NAME" | grep -E "inet |state"
+
+echo ""
+log_info "网桥连接状态:"
+bridge link show
+
+echo ""
+log_info "测试网关连通性:"
+if ping -c 2 -W 2 "$GATEWAY" &amp;&gt;/dev/null; then
+    log_success "网关 $GATEWAY 连通正常"
+else
+    log_error "无法连接到网关！"
+fi
+
+echo ""
+log_info "测试外网连通性:"
+if ping -c 2 -W 2 223.5.5.5 &amp;&gt;/dev/null; then
+    log_success "外网连通正常"
+else
+    log_warn "外网连接失败（可能DNS问题）"
+fi
+
+echo ""
+echo "========================================="
+log_success "网桥配置完成！"
+echo "========================================="
+echo ""
+echo "📁 备份目录: $BACKUP_DIR"
+echo "🔄 回滚脚本: $ROLLBACK_SCRIPT"
+echo ""
+echo "下一步："
+echo "  1. 配置 libvirt 网桥网络（参见文档步骤 4.4）"
+echo "  2. 配置防火墙规则"
+echo "  3. 如果出现问题，运行: bash $ROLLBACK_SCRIPT"
+EOF
+
+chmod +x /root/create-bridge.sh
+```
+
+**步骤 2：修改脚本中的配置参数**
+
+```bash
+# 编辑脚本，修改【配置区】的变量
+vi /root/create-bridge.sh
+
+# 需要修改的变量：
+# - PHYSICAL_INTERFACE: 改成您的实际网卡名（通过 ip addr show 查看）
+# - HOST_IP: 改成您希望的宿主机 IP
+# - GATEWAY: 改成您的网关地址
+# - DNS1/DNS2: 根据需要修改 DNS 服务器
+```
+
+**步骤 3：运行脚本**
+
+```bash
+# 以 root 权限运行
+sudo bash /root/create-bridge.sh
+
+# 脚本会显示配置摘要，确认无误后输入 yes
+```
+
+**步骤 4：如果配置失败，执行回滚**
+
+```bash
+# 运行自动生成的回滚脚本
+sudo bash /root/rollback-bridge.sh
+
+# 或手动恢复备份（备份路径会在脚本执行时显示）
+sudo cp -r /root/network-backup-&lt;时间戳&gt;/* /etc/NetworkManager/system-connections/
+sudo nmcli connection reload
+sudo systemctl restart NetworkManager
+```
+
+---
+
+#### 4.2.2 手动执行命令创建网桥
+
+如果您想手动执行每一步（不使用脚本），可以按以下步骤操作：
+
 ```bash
 # 设置变量（根据实际情况修改）
 BRIDGE_NAME="br0"
@@ -1657,6 +2080,8 @@ fi
 nmcli connection up $BRIDGE_NAME
 nmcli connection up ${BRIDGE_NAME}-slave
 ```
+
+---
 
 ### 4.3 验证网桥配置
 
@@ -10382,6 +10807,51 @@ linux_setup/
                 top: 0,
                 behavior: 'auto'  // 使用auto实现即时滚动
             });
+        });
+        
+        // 移动端菜单控制
+        const menuToggle = document.getElementById('menuToggle');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        
+        function openSidebar() {
+            sidebar.classList.add('open');
+            overlay.classList.add('visible');
+            document.body.style.overflow = 'hidden'; // 防止背景滚动
+        }
+        
+        function closeSidebar() {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('visible');
+            document.body.style.overflow = ''; // 恢复滚动
+        }
+        
+        menuToggle.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (sidebar.classList.contains('open')) {
+                closeSidebar();
+            } else {
+                openSidebar();
+            }
+        });
+        
+        overlay.addEventListener('click', closeSidebar);
+        
+        // 点击导航链接后关闭侧边栏（移动端）
+        document.addEventListener('click', function(e) {
+            if (e.target.matches('.nav-list a')) {
+                if (window.innerWidth <= 768) {
+                    closeSidebar();
+                }
+            }
+        });
+        
+        // 窗口大小改变时重置状态
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                closeSidebar();
+                sidebar.classList.remove('open');
+            }
         });
         
         // 初始化
