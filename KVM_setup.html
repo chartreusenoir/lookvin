@@ -488,6 +488,12 @@
 | [13-maintenance.md](#section-13) | 系统维护指南&lt;br&gt;• 正确的关机和启动流程&lt;br&gt;• 虚拟机自动启动配置&lt;br&gt;• 系统更新策略&lt;br&gt;• 日常维护检查清单 |
 | [14-troubleshooting.md](#section-14) | 常见问题排查&lt;br&gt;• 内存显示 27G 的原因&lt;br&gt;• 远程 BIOS 访问方案&lt;br&gt;• 网络连通性问题&lt;br&gt;• 性能优化建议 |
 
+### 🗄️ 补充文档：数据库服务
+
+| 文档 | 描述 | 预计时间 |
+|------|------|----------|
+| [15-postgresql-docker.md](#section-15) | PostgreSQL Docker 部署&lt;br&gt;• Docker Compose 配置&lt;br&gt;• 数据持久化和备份&lt;br&gt;• 管理脚本和工具&lt;br&gt;• 性能优化建议 | 30 分钟 |
+
 ---
 
 ## ⚡ 快速开始
@@ -4954,7 +4960,55 @@ sudo chown webadmin:webadmin /var/log/webapp
 
 ## 🗄️ 步骤7: 数据库安装
 
-### 7.1 PostgreSQL（推荐）
+### 7.1 PostgreSQL Docker 部署（推荐）⭐
+
+**适合场景**: 家用小型数据库，易于管理和备份
+
+```bash
+# 快速部署（使用 Docker）
+cd ~
+mkdir -p postgres-db/{data,backups,scripts}
+cd postgres-db
+
+# 下载配置文件模板
+cat &gt; docker-compose.yml &lt;&lt;'EOF'
+version: '3.8'
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres-main
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: YourStrongPassword123!
+      POSTGRES_DB: webapp_db
+      POSTGRES_USER: webapp_user
+      TZ: Asia/Shanghai
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - ./data:/var/lib/postgresql/data
+      - ./backups:/backups
+    shm_size: 256mb
+EOF
+
+# 启动数据库
+docker compose up -d
+
+# 验证
+docker compose ps
+docker exec -it postgres-main psql -U webapp_user -d webapp_db
+
+# 安装Python PostgreSQL驱动
+pip3 install psycopg2-binary
+```
+
+**详细配置和管理**: 👉 参考 **[15-postgresql-docker.md](#section-15)** 获取完整的部署、备份、恢复和管理方案。
+
+---
+
+### 7.2 PostgreSQL 系统安装（传统方式）
+
+如果不想使用 Docker，可以直接安装到系统：
 
 ```bash
 # 安装PostgreSQL
@@ -4978,7 +5032,9 @@ EOF
 pip3 install psycopg2-binary
 ```
 
-### 7.2 MySQL（可选）
+---
+
+### 7.3 MySQL（可选）
 
 ```bash
 # 安装MySQL
@@ -9841,6 +9897,743 @@ vm-manager status
 
 
 
+# 15 - PostgreSQL Docker 部署指南
+
+## 📋 本文档内容
+
+在 web-app VM (192.168.71.202) 上使用 Docker 部署 PostgreSQL 数据库服务。
+
+**适用场景**: 家用小型数据库（&lt;10GB），主要为 web-app 提供数据服务  
+**预计耗时**: 30 分钟  
+**难度**: ⭐⭐⭐☆☆
+
+---
+
+## 🎯 方案优势
+
+### 为什么选择 Docker PostgreSQL？
+
+✅ **资源高效** - 容器只占用 ~200MB 内存，远小于独立VM  
+✅ **易于管理** - 一条命令启停，配置文件化  
+✅ **数据隔离** - 与系统环境分离，升级方便  
+✅ **备份简单** - 数据卷备份即可  
+✅ **版本灵活** - 可轻松切换 PostgreSQL 版本
+
+### 架构说明
+
+```
+web-app VM (192.168.71.202)
+├─ Ubuntu 22.04 系统
+├─ Docker Engine
+│  └─ PostgreSQL 容器
+│     ├─ 端口: 5432
+│     ├─ 数据卷: /var/lib/postgresql/data (持久化)
+│     └─ 配置: docker-compose.yml
+├─ Nginx (反向代理)
+└─ Web应用 (通过 localhost:5432 连接数据库)
+```
+
+---
+
+## 📋 前置条件
+
+确保 web-app VM 已安装 Docker（参考 07-vm-web-app.md 步骤9）
+
+验证 Docker 环境：
+```bash
+# SSH 登录到 web-app VM
+ssh webadmin@192.168.71.202
+
+# 检查 Docker
+docker --version
+docker compose version
+```
+
+---
+
+## 🚀 步骤1: 创建目录结构
+
+```bash
+# 创建数据库项目目录
+mkdir -p ~/postgres-db/{data,backups,scripts}
+cd ~/postgres-db
+
+# 目录说明
+# data/     - PostgreSQL 数据文件（持久化）
+# backups/  - 数据库备份文件
+# scripts/  - 管理脚本
+```
+
+---
+
+## 🐳 步骤2: 创建 Docker Compose 配置
+
+```bash
+cat &gt; ~/postgres-db/docker-compose.yml &lt;&lt;'EOF'
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres-main
+    restart: unless-stopped
+    
+    environment:
+      # 超级用户密码（请修改为强密码）
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-YourStrongPassword123!}
+      
+      # 默认数据库
+      POSTGRES_DB: ${POSTGRES_DB:-webapp_db}
+      
+      # 默认用户
+      POSTGRES_USER: ${POSTGRES_USER:-webapp_user}
+      
+      # 时区设置
+      TZ: Asia/Shanghai
+      
+      # 性能优化
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    
+    ports:
+      # 仅本机访问（安全）
+      - "127.0.0.1:5432:5432"
+      
+      # 如需其他VM访问，使用：
+      # - "0.0.0.0:5432:5432"
+    
+    volumes:
+      # 数据持久化
+      - ./data:/var/lib/postgresql/data
+      
+      # 备份目录
+      - ./backups:/backups
+      
+      # 初始化脚本（可选）
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    
+    shm_size: 256mb
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-webapp_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    
+    # 资源限制（可选）
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+networks:
+  default:
+    name: postgres-network
+EOF
+```
+
+---
+
+## 🔐 步骤3: 配置环境变量
+
+```bash
+# 创建环境变量文件
+cat &gt; ~/postgres-db/.env &lt;&lt;'EOF'
+# PostgreSQL 配置
+POSTGRES_USER=webapp_user
+POSTGRES_PASSWORD=YourStrongPassword123!
+POSTGRES_DB=webapp_db
+
+# 备份配置
+BACKUP_RETENTION_DAYS=7
+EOF
+
+# 设置权限（保护密码文件）
+chmod 600 ~/postgres-db/.env
+```
+
+**重要**: 请修改 `.env` 文件中的 `POSTGRES_PASSWORD` 为强密码！
+
+---
+
+## 📝 步骤4: 创建初始化脚本（可选）
+
+如果需要在数据库启动时自动创建表和用户：
+
+```bash
+cat &gt; ~/postgres-db/scripts/init.sql &lt;&lt;'EOF'
+-- 初始化脚本示例
+-- 该脚本会在首次启动时自动执行
+
+-- 创建额外的数据库（可选）
+CREATE DATABASE test_db ENCODING 'UTF8';
+
+-- 创建只读用户（可选）
+CREATE USER readonly_user WITH PASSWORD 'ReadOnlyPass123!';
+GRANT CONNECT ON DATABASE webapp_db TO readonly_user;
+GRANT USAGE ON SCHEMA public TO readonly_user;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO readonly_user;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO readonly_user;
+
+-- 创建示例表（可选）
+\c webapp_db
+
+CREATE TABLE IF NOT EXISTS health_check (
+    id SERIAL PRIMARY KEY,
+    check_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(20)
+);
+
+INSERT INTO health_check (status) VALUES ('initialized');
+
+-- 打印完成信息
+SELECT 'Database initialized successfully!' as message;
+EOF
+```
+
+---
+
+## 🎬 步骤5: 启动 PostgreSQL
+
+```bash
+cd ~/postgres-db
+
+# 启动数据库
+docker compose up -d
+
+# 查看日志
+docker compose logs -f postgres
+
+# 等待健康检查通过
+docker compose ps
+```
+
+预期输出：
+```
+NAME            STATUS          PORTS
+postgres-main   Up (healthy)    127.0.0.1:5432-&gt;5432/tcp
+```
+
+---
+
+## ✅ 步骤6: 验证部署
+
+### 6.1 连接测试
+
+```bash
+# 使用 psql 连接数据库
+docker exec -it postgres-main psql -U webapp_user -d webapp_db
+
+# 在 psql 中执行测试
+\l              # 列出所有数据库
+\dt             # 列出所有表
+\du             # 列出所有用户
+SELECT version();  # 查看版本
+\q              # 退出
+```
+
+### 6.2 从应用程序连接
+
+```bash
+# 安装 PostgreSQL 客户端工具
+sudo apt install -y postgresql-client
+
+# 本地连接测试
+psql -h localhost -U webapp_user -d webapp_db
+
+# 输入密码后应能成功连接
+```
+
+### 6.3 Python 连接示例
+
+```bash
+# 创建测试脚本
+cat &gt; ~/test_db_connection.py &lt;&lt;'EOF'
+#!/usr/bin/env python3
+import psycopg2
+from psycopg2 import Error
+
+try:
+    # 连接数据库
+    connection = psycopg2.connect(
+        host="localhost",
+        port="5432",
+        database="webapp_db",
+        user="webapp_user",
+        password="YourStrongPassword123!"
+    )
+    
+    cursor = connection.cursor()
+    cursor.execute("SELECT version();")
+    record = cursor.fetchone()
+    print("✅ 数据库连接成功!")
+    print(f"PostgreSQL 版本: {record[0]}")
+    
+    cursor.close()
+    connection.close()
+    print("✅ 连接已关闭")
+    
+except Error as e:
+    print(f"❌ 连接失败: {e}")
+EOF
+
+# 安装依赖
+pip3 install psycopg2-binary
+
+# 运行测试（记得修改密码）
+python3 ~/test_db_connection.py
+```
+
+---
+
+## 💾 步骤7: 创建备份脚本
+
+```bash
+cat &gt; ~/postgres-db/scripts/backup.sh &lt;&lt;'EOF'
+#!/bin/bash
+
+# PostgreSQL Docker 备份脚本
+
+set -e
+
+BACKUP_DIR="/home/webadmin/postgres-db/backups"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+BACKUP_FILE="$BACKUP_DIR/webapp_db_$TIMESTAMP.sql.gz"
+
+echo "开始备份数据库..."
+echo "备份时间: $(date)"
+
+# 执行备份
+docker exec postgres-main pg_dump -U webapp_user -d webapp_db | gzip &gt; "$BACKUP_FILE"
+
+if [ $? -eq 0 ]; then
+    echo "✅ 备份成功: $BACKUP_FILE"
+    
+    # 显示备份大小
+    SIZE=$(du -h "$BACKUP_FILE" | cut -f1)
+    echo "备份大小: $SIZE"
+    
+    # 清理旧备份（保留最近7天）
+    find "$BACKUP_DIR" -name "webapp_db_*.sql.gz" -mtime +7 -delete
+    echo "旧备份已清理（保留7天内）"
+    
+    # 列出现有备份
+    echo -e "\n现有备份文件:"
+    ls -lh "$BACKUP_DIR"/webapp_db_*.sql.gz 2&gt;/dev/null || echo "无备份文件"
+else
+    echo "❌ 备份失败"
+    exit 1
+fi
+EOF
+
+chmod +x ~/postgres-db/scripts/backup.sh
+```
+
+### 测试备份
+
+```bash
+# 手动执行备份
+~/postgres-db/scripts/backup.sh
+
+# 查看备份文件
+ls -lh ~/postgres-db/backups/
+```
+
+---
+
+## 🔄 步骤8: 创建恢复脚本
+
+```bash
+cat &gt; ~/postgres-db/scripts/restore.sh &lt;&lt;'EOF'
+#!/bin/bash
+
+# PostgreSQL Docker 恢复脚本
+
+set -e
+
+if [ -z "$1" ]; then
+    echo "用法: $0 &lt;backup-file.sql.gz&gt;"
+    echo ""
+    echo "可用备份:"
+    ls -lh ~/postgres-db/backups/webapp_db_*.sql.gz 2&gt;/dev/null
+    exit 1
+fi
+
+BACKUP_FILE=$1
+
+if [ ! -f "$BACKUP_FILE" ]; then
+    echo "错误: 备份文件不存在: $BACKUP_FILE"
+    exit 1
+fi
+
+echo "⚠️  警告: 此操作将覆盖现有数据库！"
+echo "备份文件: $BACKUP_FILE"
+read -p "确认恢复? (yes/no): " CONFIRM
+
+if [ "$CONFIRM" != "yes" ]; then
+    echo "取消恢复"
+    exit 0
+fi
+
+echo "开始恢复数据库..."
+
+# 恢复数据库
+gunzip &lt; "$BACKUP_FILE" | docker exec -i postgres-main psql -U webapp_user -d webapp_db
+
+if [ $? -eq 0 ]; then
+    echo "✅ 恢复成功"
+else
+    echo "❌ 恢复失败"
+    exit 1
+fi
+EOF
+
+chmod +x ~/postgres-db/scripts/restore.sh
+```
+
+---
+
+## 📅 步骤9: 配置自动备份
+
+```bash
+# 添加到 crontab
+crontab -e
+
+# 添加以下行（每天凌晨3点备份）
+0 3 * * * /home/webadmin/postgres-db/scripts/backup.sh &gt;&gt; /home/webadmin/postgres-db/backups/backup.log 2&gt;&amp;1
+```
+
+验证 crontab：
+```bash
+crontab -l
+```
+
+---
+
+## 🛠️ 步骤10: 常用管理命令
+
+### 创建管理脚本
+
+```bash
+cat &gt; ~/postgres-db/scripts/manage.sh &lt;&lt;'EOF'
+#!/bin/bash
+
+# PostgreSQL 管理工具
+
+CONTAINER="postgres-main"
+DB_USER="webapp_user"
+DB_NAME="webapp_db"
+
+case "$1" in
+    start)
+        echo "启动 PostgreSQL..."
+        cd ~/postgres-db &amp;&amp; docker compose up -d
+        ;;
+    stop)
+        echo "停止 PostgreSQL..."
+        cd ~/postgres-db &amp;&amp; docker compose down
+        ;;
+    restart)
+        echo "重启 PostgreSQL..."
+        cd ~/postgres-db &amp;&amp; docker compose restart
+        ;;
+    logs)
+        docker compose -f ~/postgres-db/docker-compose.yml logs -f postgres
+        ;;
+    status)
+        docker compose -f ~/postgres-db/docker-compose.yml ps
+        docker exec $CONTAINER pg_isready -U $DB_USER
+        ;;
+    shell)
+        echo "连接到 PostgreSQL shell..."
+        docker exec -it $CONTAINER psql -U $DB_USER -d $DB_NAME
+        ;;
+    backup)
+        ~/postgres-db/scripts/backup.sh
+        ;;
+    restore)
+        if [ -z "$2" ]; then
+            echo "用法: $0 restore &lt;backup-file&gt;"
+            exit 1
+        fi
+        ~/postgres-db/scripts/restore.sh "$2"
+        ;;
+    stats)
+        echo "数据库统计信息:"
+        docker exec $CONTAINER psql -U $DB_USER -d $DB_NAME -c "
+            SELECT 
+                schemaname,
+                tablename,
+                pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
+            FROM pg_tables 
+            WHERE schemaname = 'public'
+            ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC;
+        "
+        ;;
+    *)
+        echo "PostgreSQL 管理工具"
+        echo ""
+        echo "用法: $0 &lt;command&gt;"
+        echo ""
+        echo "命令:"
+        echo "  start     - 启动数据库"
+        echo "  stop      - 停止数据库"
+        echo "  restart   - 重启数据库"
+        echo "  logs      - 查看日志"
+        echo "  status    - 查看状态"
+        echo "  shell     - 连接到 psql"
+        echo "  backup    - 执行备份"
+        echo "  restore   - 恢复备份"
+        echo "  stats     - 查看统计信息"
+        exit 1
+        ;;
+esac
+EOF
+
+chmod +x ~/postgres-db/scripts/manage.sh
+
+# 创建快捷命令
+echo 'alias pgdb="~/postgres-db/scripts/manage.sh"' &gt;&gt; ~/.bashrc
+source ~/.bashrc
+```
+
+使用示例：
+```bash
+pgdb status     # 查看状态
+pgdb shell      # 连接数据库
+pgdb backup     # 执行备份
+pgdb logs       # 查看日志
+```
+
+---
+
+## 🔒 步骤11: 安全配置
+
+### 11.1 配置防火墙（如需外部访问）
+
+```bash
+# 仅允许特定IP访问（如果修改了 docker-compose.yml 中的端口绑定）
+sudo ufw allow from 192.168.71.0/24 to any port 5432 proto tcp
+sudo ufw status
+```
+
+### 11.2 修改默认密码
+
+```bash
+# 进入数据库
+docker exec -it postgres-main psql -U webapp_user -d webapp_db
+
+# 修改密码
+ALTER USER webapp_user WITH PASSWORD 'NewStrongPassword123!';
+
+# 退出
+\q
+
+# 同时更新 .env 文件
+nano ~/postgres-db/.env
+```
+
+---
+
+## 📊 步骤12: 性能优化（可选）
+
+对于家用小型数据库，默认配置已足够。如需优化：
+
+```bash
+# 创建自定义配置文件
+cat &gt; ~/postgres-db/postgresql.conf &lt;&lt;'EOF'
+# PostgreSQL 配置优化（小型数据库）
+
+# 连接设置
+max_connections = 50
+shared_buffers = 128MB
+effective_cache_size = 512MB
+maintenance_work_mem = 64MB
+work_mem = 4MB
+
+# 日志设置
+logging_collector = on
+log_statement = 'all'
+log_duration = on
+
+# 性能
+checkpoint_completion_target = 0.9
+wal_buffers = 16MB
+default_statistics_target = 100
+EOF
+
+# 在 docker-compose.yml 中挂载配置
+# 在 volumes 部分添加:
+# - ./postgresql.conf:/etc/postgresql/postgresql.conf:ro
+
+# 重启生效
+docker compose restart
+```
+
+---
+
+## 📝 完成检查清单
+
+- [x] Docker 环境准备完成
+- [x] Docker Compose 配置文件创建
+- [x] 环境变量配置（密码已修改）
+- [x] PostgreSQL 容器启动成功
+- [x] 数据库连接测试通过
+- [x] 备份脚本创建并测试
+- [x] 恢复脚本创建
+- [x] 自动备份 cron 任务配置
+- [x] 管理工具脚本创建
+- [x] 安全配置完成
+
+---
+
+## 🎯 日常使用
+
+### 启动/停止
+
+```bash
+# 启动
+pgdb start
+
+# 停止
+pgdb stop
+
+# 查看状态
+pgdb status
+```
+
+### 连接数据库
+
+```bash
+# 命令行
+pgdb shell
+
+# Python 代码
+import psycopg2
+conn = psycopg2.connect(
+    host="localhost",
+    database="webapp_db",
+    user="webapp_user",
+    password="YourPassword"
+)
+```
+
+### 备份恢复
+
+```bash
+# 手动备份
+pgdb backup
+
+# 恢复
+pgdb restore ~/postgres-db/backups/webapp_db_20260225_030000.sql.gz
+```
+
+---
+
+## 🚨 故障排查
+
+### 容器无法启动
+
+```bash
+# 查看日志
+docker compose -f ~/postgres-db/docker-compose.yml logs
+
+# 常见问题：
+# 1. 端口被占用 -&gt; 检查: sudo netstat -tlnp | grep 5432
+# 2. 数据目录权限 -&gt; 检查: ls -la ~/postgres-db/data
+# 3. 内存不足 -&gt; 检查: free -h
+```
+
+### 无法连接
+
+```bash
+# 检查容器状态
+docker ps | grep postgres
+
+# 检查端口监听
+sudo netstat -tlnp | grep 5432
+
+# 测试连接
+psql -h localhost -U webapp_user -d webapp_db
+```
+
+### 性能问题
+
+```bash
+# 查看活动连接
+docker exec postgres-main psql -U webapp_user -d webapp_db -c "SELECT * FROM pg_stat_activity;"
+
+# 查看数据库大小
+docker exec postgres-main psql -U webapp_user -d webapp_db -c "SELECT pg_size_pretty(pg_database_size('webapp_db'));"
+```
+
+---
+
+## 🔧 维护建议
+
+### 定期检查
+
+- 每周查看磁盘空间: `df -h ~/postgres-db/data`
+- 每月查看备份文件: `ls -lh ~/postgres-db/backups/`
+- 定期更新镜像: `docker pull postgres:16-alpine &amp;&amp; docker compose up -d`
+
+### 监控指标
+
+```bash
+# 添加到监控脚本
+cat &gt;&gt; ~/system-check.sh &lt;&lt;'EOF'
+
+echo "--- PostgreSQL 状态 ---"
+docker compose -f ~/postgres-db/docker-compose.yml ps
+echo ""
+echo "数据库大小:"
+du -sh ~/postgres-db/data
+echo "最新备份:"
+ls -lht ~/postgres-db/backups/ | head -3
+EOF
+```
+
+---
+
+## 📚 参考资料
+
+- [PostgreSQL Docker 官方镜像](https://hub.docker.com/_/postgres)
+- [PostgreSQL 官方文档](https://www.postgresql.org/docs/)
+- [psycopg2 文档](https://www.psycopg.org/docs/)
+
+---
+
+## 🎯 下一步
+
+数据库部署完成！现在可以：
+
+1. **在 Web 应用中使用**
+   - 修改应用的数据库连接配置
+   - 运行数据库迁移
+   - 测试应用功能
+
+2. **配置监控**
+   - 集成到 Cockpit 监控
+   - 设置告警阈值
+
+3. **优化性能**
+   - 根据实际使用调整资源限制
+   - 添加连接池（如 PgBouncer）
+
+---
+
+**恭喜！PostgreSQL Docker 数据库部署完成！** 🎉
+
+
+
+
+---
+
+
+
 # 常见疑问 FAQ
 
 ## 🤔 关于文档和配置的常见问题
@@ -10316,7 +11109,7 @@ KVM虚拟化完整指南.html: 147KB
 
 ## ✅ 已完成文档清单
 
-### 📚 共16个完整文档
+### 📚 共17个完整文档
 
 | # | 文档名称 | 大小 | 描述 |
 |---|----------|------|------|
@@ -10327,17 +11120,18 @@ KVM虚拟化完整指南.html: 147KB
 | 04 | vm-management.md | 12KB | 虚拟机管理工具 |
 | 05 | monitoring.md | 1.3KB | Cockpit监控方案 |
 | 06 | vm-python-dev.md | 3.4KB | Python开发环境 |
-| 07 | vm-web-app.md | 9.7KB | Web应用部署 |
+| 07 | vm-web-app.md | 11KB | Web应用部署（含PostgreSQL） |
 | 08 | vm-router-comparison.md | 1.7KB | 旁路由方案对比 |
 | 09 | vm-router-openwrt.md | 3.6KB | OpenWrt旁路由 |
-| **09+** | **补充-精准分流配置.md** | **11KB** | **🆕 精准分流规则** |
+| **09+** | **补充-精准分流配置.md** | **11KB** | **精准分流规则** |
 | 10 | vm-router-v2ray.md | 3.0KB | V2Ray旁路由 |
 | 11 | vm-nas.md | 8.9KB | NAS文件服务器 |
 | 12 | backup-restore.md | 4.1KB | 备份恢复策略 |
 | 13 | maintenance.md | 6.2KB | 系统维护 |
 | 14 | troubleshooting.md | 4.7KB | 常见问题排查 |
+| **15** | **postgresql-docker.md** | **15KB** | **🆕 PostgreSQL Docker部署** |
 
-**总计**: 16个文档，约142KB
+**总计**: 17个文档，约157KB
 
 ---
 
