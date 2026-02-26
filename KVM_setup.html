@@ -1656,7 +1656,47 @@ usermod -aG kvm chris
 groups chris
 ```
 
-### 3.3 配置 libvirt 网络
+### 3.3 配置 chris 用户的 libvirt 连接模式
+
+普通用户默认连接 `qemu:///session`（用户级私有实例），而不是 `qemu:///system`（系统级服务）。session 模式下无法访问 br0、kvm_pool 等系统资源，必须显式配置为 system 模式。
+
+```bash
+# 以 chris 用户执行（不要用 root）
+su - chris
+
+mkdir -p ~/.config/libvirt
+echo 'uri_default = "qemu:///system"' &gt;&gt; ~/.config/libvirt/libvirt.conf
+
+# 验证
+cat ~/.config/libvirt/libvirt.conf
+
+# 退回 root
+exit
+```
+
+配置后 chris 执行 `virsh`、`virt-install` 等命令都默认走 `qemu:///system`，效果与 root 一致。
+
+### 3.4 配置 QEMU 网桥 ACL
+
+QEMU 的网桥辅助程序 `/usr/libexec/qemu-bridge-helper` 通过 ACL 文件控制允许使用的网桥。默认不允许 br0，普通用户使用 br0 时会报错：
+
+```
+access denied by acl file
+```
+
+```bash
+# 以 root 执行
+# 创建配置文件目录（如不存在）
+mkdir -p /etc/qemu
+
+# 允许 br0 网桥
+echo "allow br0" &gt;&gt; /etc/qemu/bridge.conf
+
+# 验证
+cat /etc/qemu/bridge.conf
+```
+
+### 3.5 配置 libvirt 网络
 
 ```bash
 # 查看默认网络
@@ -2502,12 +2542,12 @@ else
     check_fail "KVM 模块未加载"
 fi
 
-# 3. libvirt 服务
+# 3. libvirt 服务（modular 模式，使用 virtqemud 替代 libvirtd）
 echo "3. 检查 libvirt 服务..."
-if systemctl is-active --quiet libvirtd; then
-    check_pass "libvirtd 服务运行中"
+if systemctl is-active --quiet virtqemud; then
+    check_pass "virtqemud 服务运行中"
 else
-    check_fail "libvirtd 服务未运行"
+    check_fail "virtqemud 服务未运行"
 fi
 
 # 4. 网桥配置
@@ -3080,11 +3120,11 @@ lsblk $DISK_DEVICE
 lsblk $DISK_DEVICE
 
 # 新分区通常是最后一个，例如:
-# /dev/nvme0n1p3 (NVMe SSD)
+# /dev/nvme0n1p4 (NVMe SSD)
 # /dev/sda3 (SATA SSD)
 
 # 设置变量（根据实际情况修改）
-NEW_PARTITION="${DISK_DEVICE}p3"  # NVMe
+NEW_PARTITION="${DISK_DEVICE}p4"  # NVMe
 # 或
 # NEW_PARTITION="${DISK_DEVICE}3"  # SATA
 
@@ -3095,6 +3135,91 @@ ls -l $NEW_PARTITION
 ---
 
 ## 🗄️ 步骤 4: 配置 LVM
+
+### 💡 命令参数详解
+
+在执行之前，先了解每个命令和参数的含义：
+
+**4.1 pvcreate**
+```
+pvcreate /dev/nvme0n1p4
+```
+- `pvcreate`：把裸分区初始化为 LVM 可识别的物理卷，在分区头部写入 LVM 元数据
+- `/dev/nvme0n1p4`：即 `$NEW_PARTITION`，你刚创建的新分区
+
+**4.2 vgcreate**
+```
+vgcreate vg_kvm /dev/nvme0n1p4
+```
+- `vgcreate`：创建卷组，把一个或多个物理卷合并成统一的存储池
+- `vg_kvm`：卷组的名字，自定义，后续所有命令都通过这个名字引用
+
+**4.3 lvcreate thin pool**
+```
+lvcreate -L 1200G --thinpool kvm_thin_pool vg_kvm
+```
+- `lvcreate`：在卷组里创建逻辑卷
+- `-L 1200G`：大小 1200GB
+- `--thinpool`：创建的是 thin pool 类型，不是普通逻辑卷
+- `kvm_thin_pool`：thin pool 的名字
+- `vg_kvm`：从哪个卷组里划空间
+
+```
+lvchange --zero n vg_kvm/kvm_thin_pool
+```
+- `lvchange`：修改逻辑卷属性
+- `--zero n`：关闭"新块清零"，新分配的存储块不预先清零，虚拟机创建磁盘时速度更快
+
+```
+thin_pool_autoextend_threshold = 80
+thin_pool_autoextend_percent = 20
+```
+- 写入 `/etc/lvm/lvm.conf` 的全局配置
+- `threshold = 80`：thin pool 使用率超过 80% 时自动触发扩展
+- `percent = 20`：每次扩展当前大小的 20%（即 1200GB × 20% = 240GB）
+- 扩展的空间来自 vg_kvm 里的剩余未分配空间
+
+```
+lvs -a vg_kvm
+```
+- `lvs`：列出逻辑卷
+- `-a`：显示包括 thin pool 内部元数据卷在内的所有卷（不加 `-a` 看不到内部卷）
+
+**4.4 lvcreate NAS 数据卷**
+```
+lvcreate -L 500G -n lv_nas_data vg_kvm
+```
+- `-n lv_nas_data`：逻辑卷的名字（`-n` 指定名字，与 `--thinpool` 不同，这是普通逻辑卷）
+
+```
+mkfs.xfs /dev/vg_kvm/lv_nas_data
+```
+- `mkfs.xfs`：把逻辑卷格式化为 XFS 文件系统，格式化后才能当目录挂载使用
+
+```
+echo "/dev/vg_kvm/lv_nas_data /data/nas xfs defaults 0 0" &gt;&gt; /etc/fstab
+```
+- 写入 `/etc/fstab`，系统重启后自动挂载
+- `defaults`：使用默认挂载选项
+- 最后两个 `0 0`：第一个是 dump 备份开关（0=不备份），第二个是 fsck 开机检查顺序（0=不检查）
+
+**4.5 SELinux 上下文**
+```
+semanage fcontext -a -t virt_image_t '/data/nas(/.*)?'
+```
+- `semanage fcontext`：管理 SELinux 文件上下文规则
+- `-a`：添加新规则
+- `-t virt_image_t`：标记为虚拟机镜像类型，KVM 进程有权限读写带此标签的文件
+- `'/data/nas(/.*)?'`：规则适用于 `/data/nas` 及其下所有文件
+
+```
+restorecon -Rv /data/nas
+```
+- `restorecon`：根据上面定义的规则，把 SELinux 标签实际打到文件上
+- `-R`：递归处理子目录，`-v`：显示详细过程
+- ⚠️ 不执行这步，`semanage` 定义的规则不会真正生效
+
+---
 
 ### 4.1 创建物理卷 (PV)
 
@@ -3129,15 +3254,40 @@ lvcreate -L 1200G --thinpool kvm_thin_pool vg_kvm
 # 优化 thin pool 性能（禁用零初始化）
 lvchange --zero n vg_kvm/kvm_thin_pool
 
-# 配置 thin pool 自动扩展（当使用率超过 80% 时）
-cat &gt;&gt; /etc/lvm/lvm.conf &lt;&lt;'EOF'
-
-# Thin pool auto-extend settings
-activation {
-    thin_pool_autoextend_threshold = 80
-    thin_pool_autoextend_percent = 20
-}
-EOF
+# ⚠️ 关于 thin pool 自动扩展：
+# 自动扩展依赖 vg_kvm 内部的剩余未分配空间作为原料。
+# 当前规划中 kvm_thin_pool (1200G) + lv_nas_data (500G) 已几乎占满 vg_kvm，
+# 剩余空间接近 0，自动扩展触发后会因无原料而失败，配置了也不会生效。
+# 磁盘末尾预留的 50GB 未分区空间不属于 vg_kvm，thin pool 同样无法使用。
+#
+# 如果将来 vg_kvm 有了足够剩余空间（扩展了硬盘或纳入了末尾 50GB），
+# 可以取消下面的注释来启用自动扩展：
+#
+# cat &gt;&gt; /etc/lvm/lvm.conf &lt;&lt;'EOF'
+#
+# # Thin pool auto-extend settings
+# activation {
+#     thin_pool_autoextend_threshold = 80
+#     thin_pool_autoextend_percent = 20
+# }
+# EOF
+#
+# 真正需要扩展 thin pool 时，有两个实际可用的办法：
+#
+# 办法一：把末尾 50GB 纳入 vg_kvm
+#   parted /dev/nvme0n1 mkpart primary &lt;start&gt; 100%
+#   pvcreate /dev/nvme0n1p5
+#   vgextend vg_kvm /dev/nvme0n1p5
+#   lvextend -L +50G vg_kvm/kvm_thin_pool
+#
+# 办法二：加一块新硬盘
+#   pvcreate /dev/sdb
+#   vgextend vg_kvm /dev/sdb
+#   lvextend -L +&lt;size&gt; vg_kvm/kvm_thin_pool
+#
+# 日常监控 thin pool 使用率：
+#   lvs -a vg_kvm
+#   storage-monitor
 
 # 验证
 lvdisplay vg_kvm/kvm_thin_pool
@@ -3176,6 +3326,36 @@ mount | grep nas
 # 为 NAS 数据目录设置 SELinux 上下文
 semanage fcontext -a -t virt_image_t '/data/nas(/.*)?'
 restorecon -Rv /data/nas
+```
+
+### 📊 完成步骤 4 后的磁盘架构
+
+执行完步骤 4 后，你的完整磁盘结构如下：
+
+```
+物理磁盘 nvme0n1 (1.9TB)
+│
+├─ p1  600MB   /boot/efi        EFI 引导分区（系统安装时创建）
+├─ p2  1GB     /boot            内核和引导文件（系统安装时创建）
+├─ p3  108GB   → LVM 卷组 rlm  （系统安装时创建）
+│               ├─ rlm-root  100GB  挂载到 /      系统盘
+│               └─ rlm-swap  8GB    SWAP           交换空间
+│
+└─ p4  ~1.75TB → LVM 卷组 vg_kvm  ← 步骤 3-4 新建
+                │
+                ├─ kvm_thin_pool   1200GB  thin pool（虚拟机磁盘池）
+                │   │  按需分配，声明多少不占多少，实际写入多少占多少
+                │   │
+                │   ├─ python-dev.qcow2   80GB  ┐
+                │   ├─ web-app.qcow2     100GB  │ 步骤 04 创建虚拟机时才有
+                │   ├─ router.qcow2       20GB  │
+                │   └─ nas-system.raw     30GB  ┘
+                │
+                ├─ lv_nas_data     500GB   普通逻辑卷
+                │   └─ 格式化为 XFS，挂载到 /data/nas
+                │       └─ NAS 虚拟机通过 virtio-fs 访问这里存放数据文件
+                │
+                └─ 未分配          ~50GB   应急预留
 ```
 
 ---
@@ -3220,6 +3400,34 @@ virsh pool-autostart nas_data_pool
 virsh pool-list --all
 virsh pool-info nas_data_pool
 ```
+
+### 💡 kvm_thin_pool 和 kvm_pool 的区别
+
+这两个名字很容易混淆，但它们是**完全不同层面**的概念：
+
+| | kvm_thin_pool | kvm_pool |
+|---|---|---|
+| 属于 | LVM | KVM/virsh |
+| 管的是 | 物理存储怎么分配 | virsh 去哪里创建虚拟磁盘 |
+| 创建命令 | `lvcreate --thinpool` | `virsh pool-define-as` |
+| 能直接看到 | `lvs` 命令 | `virsh pool-list` 命令 |
+
+`kvm_pool` 本质上只是一个**指针**，告诉 virsh："你要创建虚拟磁盘时，去 `vg_kvm` 这个 LVM 卷组里操作"。真正存放数据的是 `kvm_thin_pool`。
+
+```
+virsh 创建虚拟磁盘
+        │
+        ▼
+  kvm_pool              ← virsh 的入口，指向 vg_kvm（步骤 5 创建）
+        │
+        ▼
+  vg_kvm 卷组           ← LVM 仓库（步骤 4.2 创建）
+        │
+        ▼
+  kvm_thin_pool         ← 实际存放虚拟磁盘数据（步骤 4.3 创建）
+```
+
+一句话：**kvm_thin_pool 是仓库，kvm_pool 是仓库的门牌号。**
 
 ---
 
@@ -4248,35 +4456,35 @@ cat &gt; /root/vm-resource-plan.txt &lt;&lt;'EOF'
 
 1. python-dev (Python开发)
    - vCPU: 2
-   - 内存: 4GB  
+   - 内存: 6GB  
    - 磁盘: 80GB (qcow2)
    - IP: 192.168.71.201
-   - 自动启动: 否
+   - 自动启动: 是
 
 2. web-app (Web应用部署)
-   - vCPU: 2
-   - 内存: 4GB
+   - vCPU: 4
+   - 内存: 8GB
    - 磁盘: 100GB (qcow2)
    - IP: 192.168.71.202
    - 自动启动: 是
 
 3. router (旁路由)
-   - vCPU: 2
-   - 内存: 2GB
+   - vCPU: 1
+   - 内存: 1GB
    - 磁盘: 20GB (qcow2)
    - IP: 192.168.71.254
    - 自动启动: 是
 
 4. nas (文件服务器)
    - vCPU: 2
-   - 内存: 4GB
+   - 内存: 2GB
    - 磁盘: 30GB (raw) + 500GB数据卷
    - IP: 192.168.71.210
    - 自动启动: 是
 
 总计:
-  - vCPU: 8 (留4个给宿主机)
-  - 内存: 14GB (留18GB给宿主机+缓存)
+  - vCPU: 9 (留3个给宿主机)
+  - 内存: 17GB (留15GB给宿主机+缓存)
   - 磁盘: 230GB + 500GB数据
 
 ========================================
@@ -4307,9 +4515,11 @@ cat /root/vm-resource-plan.txt
 virsh autostart nas
 virsh autostart router
 virsh autostart web-app
+virsh autostart python-dev
 
-# 不自动启动开发VM
-virsh autostart --disable python-dev
+### 如果以后需要关闭自启动
+# # 不自动启动开发VM
+# virsh autostart --disable python-dev
 
 # 查看自动启动状态
 virsh list --all --autostart
@@ -9588,7 +9798,7 @@ check() {
 echo "系统健康检查"
 echo "======================="
 
-check "systemctl is-active libvirtd" "libvirtd服务"
+check "systemctl is-active virtqemud" "virtqemud服务"
 check "systemctl is-active firewalld" "防火墙服务"
 check "systemctl is-active chronyd" "时间同步"
 check "ping -c 1 192.168.71.1" "网关连通性"
@@ -9855,7 +10065,7 @@ sudo systemctl enable --now chrony
 ```bash
 # 系统日志
 journalctl -xe
-journalctl -u libvirtd
+journalctl -u virtqemud
 
 # 虚拟机日志
 cat /var/log/libvirt/qemu/&lt;vm-name&gt;.log
