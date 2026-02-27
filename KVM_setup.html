@@ -5603,6 +5603,814 @@ sudo systemctl restart myapp
 
 
 
+# 09 - OpenWrt旁路由完整配置指南
+
+## 📋 本文档内容
+
+使用OpenWrt + OpenClash实现透明代理旁路由的完整流程，包括虚拟机创建、磁盘扩展和插件安装。
+
+**预计耗时**: 90分钟
+
+---
+
+## 🔍 两种虚拟机创建方式对比
+
+### 方式一：使用 create-vm 脚本（基于LVM精简卷）
+```bash
+create-vm router 1 1 20 raw /kvm/iso/openwrt.qcow2 192.168.71.254
+```
+
+**特点**:
+- ✓ 创建LVM精简卷（thin provisioned）
+- ✓ 支持快照和动态扩展
+- ✗ **参数 `raw` 会创建新的20GB LVM卷**
+- ✗ **忽略已准备的qcow2镜像文件**
+- ✗ ISO参数实际被当作CDROM挂载，虚拟机无法启动
+
+**适用场景**: 需要从ISO安装系统的虚拟机（如Ubuntu、CentOS等）
+
+### 方式二：直接使用 virt-install --import（推荐用于OpenWrt）
+```bash
+virt-install \
+    --name router \
+    --ram 1024 \
+    --vcpus 1 \
+    --disk /var/lib/libvirt/images/router.qcow2,format=qcow2,bus=virtio \
+    --network bridge=br0,model=virtio \
+    --graphics vnc,listen=0.0.0.0 \
+    --os-variant generic \
+    --import \
+    --noautoconsole
+```
+
+**特点**:
+- ✓ **使用 `--import` 直接导入已有镜像**
+- ✓ **指定具体的qcow2文件路径**
+- ✓ 虚拟机直接使用扩展后的20GB镜像
+- ✓ 适合预制镜像（如OpenWrt、pfSense）
+
+**适用场景**: 使用预制镜像的虚拟机（如OpenWrt、预装好的系统镜像）
+
+### 核心区别总结
+
+| 项目 | create-vm (raw) | virt-install --import |
+|------|----------------|----------------------|
+| 存储类型 | LVM精简卷 | qcow2文件 |
+| 磁盘路径 | `/dev/vg_kvm/router` | `/var/lib/libvirt/images/router.qcow2` |
+| 镜像使用 | 创建新卷，忽略镜像 | 直接使用镜像文件 |
+| 安装方式 | 从ISO/CDROM安装 | 导入预制镜像 |
+| 快照支持 | 支持LVM快照 | 支持qcow2快照 |
+| 性能 | 略好（直接访问块设备） | 良好（文件系统层） |
+
+**结论**: 对于OpenWrt这种预制镜像，必须使用 `virt-install --import`，否则虚拟机无法正常启动。
+
+---
+
+## 🚀 步骤1: 下载OpenWrt镜像
+
+```bash
+cd /kvm/iso
+
+# 下载OpenWrt x86-64版本（使用国内镜像）
+wget https://mirrors.ustc.edu.cn/openwrt/releases/23.05.2/targets/x86/64/openwrt-23.05.2-x86-64-generic-ext4-combined.img.gz
+
+# 解压
+gunzip openwrt-23.05.2-x86-64-generic-ext4-combined.img.gz
+```
+
+**验证下载**:
+```bash
+ls -lh openwrt-23.05.2-x86-64-generic-ext4-combined.img
+# 应该显示约119MB
+```
+
+---
+
+## 💾 步骤2: 准备虚拟机镜像
+
+```bash
+# 转换为qcow2格式
+sudo qemu-img convert -f raw -O qcow2 \
+    /kvm/iso/openwrt-23.05.2-x86-64-generic-ext4-combined.img \
+    /kvm/iso/openwrt.qcow2
+
+# 扩展磁盘到20GB（qcow2文件层面）
+sudo qemu-img resize /kvm/iso/openwrt.qcow2 20G
+
+# 验证镜像信息
+sudo qemu-img info /kvm/iso/openwrt.qcow2
+
+# 复制到libvirt存储池
+sudo cp /kvm/iso/openwrt.qcow2 /var/lib/libvirt/images/router.qcow2
+sudo chown qemu:qemu /var/lib/libvirt/images/router.qcow2
+```
+
+**预期输出**:
+```
+virtual size: 20 GiB (21474836480 bytes)
+disk size: 119 MiB
+```
+
+---
+
+## 🗑️ 步骤3: 删除错误创建的虚拟机（如果存在）
+
+如果之前使用错误方式创建了虚拟机，需要完全清理：
+
+```bash
+# 停止虚拟机
+virsh destroy router 2&gt;/dev/null || true
+
+# 删除虚拟机定义
+virsh undefine router 2&gt;/dev/null || true
+
+# 删除LVM卷（如果创建了）
+sudo lvremove -f /dev/vg_kvm/router 2&gt;/dev/null || true
+
+# 验证清理完成
+virsh list --all | grep router
+# 应该没有输出
+```
+
+---
+
+## 💻 步骤4: 使用正确方式创建虚拟机
+
+```bash
+# 方式：直接导入qcow2镜像
+virt-install \
+    --name router \
+    --ram 1024 \
+    --vcpus 1 \
+    --disk /var/lib/libvirt/images/router.qcow2,format=qcow2,bus=virtio \
+    --network bridge=br0,model=virtio \
+    --graphics vnc,listen=0.0.0.0 \
+    --os-variant generic \
+    --import \
+    --noautoconsole
+
+# 查看虚拟机状态
+virsh list --all
+
+# 查看VNC端口
+virsh vncdisplay router
+# 输出类似: :0（表示5900端口）
+```
+
+**参数说明**:
+- `--import`: 直接导入已有镜像，不从ISO安装
+- `--disk`: 指定qcow2文件路径和格式
+- `--network`: 桥接到br0网桥
+- `--noautoconsole`: 不自动打开控制台
+
+---
+
+## ⚙️ 步骤5: 初始网络配置
+
+### 5.1 通过VNC连接
+
+```bash
+# 查看VNC连接信息
+virsh vncdisplay router
+
+# 使用VNC客户端连接
+# IP: 192.168.71.200（宿主机IP）
+# 端口: 5900（或vncdisplay显示的端口）
+```
+
+**VNC客户端推荐**:
+- Windows: TightVNC、RealVNC
+- macOS: Screen Sharing
+- Linux: Remmina、virt-viewer
+
+### 5.2 修改IP地址
+
+在VNC控制台中执行：
+
+```bash
+# OpenWrt默认IP: 192.168.1.1
+# 目标IP: 192.168.71.254
+
+# 编辑网络配置
+vi /etc/config/network
+
+# 找到lan接口配置，修改为：
+config interface 'lan'
+    option device 'br-lan'
+    option proto 'static'
+    option ipaddr '192.168.71.254'
+    option netmask '255.255.255.0'
+    option gateway '192.168.71.1'
+    option dns '192.168.71.1 223.5.5.5'
+
+# 保存并重启网络
+/etc/init.d/network restart
+```
+
+**等待30秒**，然后测试连接：
+```bash
+ping 192.168.71.254
+```
+
+---
+
+## 📏 步骤6: 扩展虚拟机内部分区
+
+**重要**: qemu-img resize只扩展了镜像文件大小，虚拟机内部分区仍是100MB，需要手动扩展。
+
+### 6.1 SSH登录虚拟机
+
+```bash
+ssh root@192.168.71.254
+# 初次登录无密码，直接回车
+```
+
+### 6.2 查看当前分区状态
+
+```bash
+# 查看磁盘和分区
+fdisk -l /dev/vda
+
+# 查看文件系统使用情况
+df -h
+```
+
+**预期输出**:
+```
+/dev/vda2    100M   已使用约50M
+```
+
+### 6.3 安装分区工具
+
+```bash
+# 更新软件包列表
+opkg update
+
+# 安装必要工具
+opkg install parted resize2fs
+```
+
+### 6.4 扩展分区
+
+```bash
+# 1. 使用parted扩展分区2到磁盘末尾
+parted /dev/vda resizepart 2 100%
+
+# 2. 扩展ext4文件系统
+resize2fs /dev/vda2
+
+# 3. 验证扩展结果
+df -h
+```
+
+**预期输出**:
+```
+/dev/vda2    19.5G   已使用约50M   可用约18.5G
+```
+
+### 6.5 设置root密码
+
+```bash
+passwd
+# 输入两次新密码
+```
+
+---
+
+## 🌐 步骤7: Web界面初始化
+
+### 7.1 访问Web界面
+
+浏览器访问: http://192.168.71.254
+
+- 默认用户名: `root`
+- 默认密码: （刚才设置的密码）
+
+### 7.2 基本系统设置
+
+**系统 → 系统**:
+- 主机名: `OpenWrt-Router`
+- 时区: `Asia/Shanghai`
+- NTP服务器: `cn.pool.ntp.org`
+
+**保存并应用**
+
+---
+
+## 📦 步骤8: 安装OpenClash
+
+### 8.1 下载OpenClash
+
+在宿主机执行：
+
+```bash
+cd /tmp
+
+# 下载最新版OpenClash（版本号可能会更新）
+wget https://github.com/vernesong/OpenClash/releases/download/v0.46.028/luci-app-openclash_0.46.028_all.ipk
+
+# 如果GitHub访问慢，使用镜像：
+# wget https://mirror.ghproxy.com/https://github.com/vernesong/OpenClash/releases/download/v0.46.028/luci-app-openclash_0.46.028_all.ipk
+
+# 上传到OpenWrt
+scp luci-app-openclash_0.46.028_all.ipk root@192.168.71.254:/tmp/
+```
+
+### 8.2 安装依赖包
+
+SSH登录OpenWrt并执行：
+
+```bash
+ssh root@192.168.71.254
+
+# 更新软件包列表
+opkg update
+
+# 安装核心依赖
+opkg install coreutils-nohup bash curl ca-certificates ipset ip-full libcap libcap-bin ruby ruby-yaml kmod-tun kmod-inet-diag unzip luci-compat luci luci-base
+
+# 安装iptables相关
+opkg install iptables-mod-tproxy iptables-mod-extra iptables-nft
+
+# 安装dnsmasq-full（替换dnsmasq）
+opkg remove dnsmasq
+opkg install dnsmasq-full
+```
+
+**注意**: 
+- 如果提示软件包冲突，使用 `--force-overwrite` 参数
+- dnsmasq-full提供了更多DNS功能，是OpenClash必需的
+
+### 8.3 安装OpenClash
+
+```bash
+# 安装插件
+opkg install /tmp/luci-app-openclash_0.46.028_all.ipk
+
+# 重启uhttpd服务（Web服务器）
+/etc/init.d/uhttpd restart
+```
+
+### 8.4 下载Clash内核
+
+Web界面: http://192.168.71.254
+
+1. **服务 → OpenClash → 插件设置**
+2. **版本更新 → 下载内核**
+3. 选择并下载：
+   - **Clash Core**: clash（Meta内核推荐）
+   - **开发版内核**: clash premium或clash.meta
+4. 等待下载完成（约2-5分钟）
+
+**或通过SSH下载**（更快）:
+```bash
+cd /etc/openclash/core
+
+# 下载clash内核
+wget -O clash https://github.com/vernesong/OpenClash/releases/download/Clash/clash-linux-amd64.tar.gz
+tar -xzf clash-linux-amd64.tar.gz
+chmod +x clash
+
+# 下载TUN内核
+wget -O clash_tun https://github.com/vernesong/OpenClash/releases/download/TUN-Premium/clash-linux-amd64-2023.08.17-13-gdcc8d87.gz
+gunzip clash_tun
+chmod +x clash_tun
+
+# 下载Meta内核
+wget -O clash_meta https://github.com/vernesong/OpenClash/releases/download/TUN/clash-linux-amd64.tar.gz
+tar -xzf clash-linux-amd64.tar.gz
+chmod +x clash_meta
+```
+
+---
+
+## 🔧 步骤9: 配置OpenClash
+
+### 9.1 导入订阅配置
+
+Web界面: **服务 → OpenClash → 配置文件订阅**
+
+1. 点击 **添加**
+2. 输入订阅信息：
+   - **订阅地址**: （你的机场订阅链接）
+   - **配置文件名**: `我的订阅`
+3. 点击 **保存配置**
+4. 点击 **更新配置**
+
+**等待1-2分钟**，订阅更新完成。
+
+### 9.2 运行模式配置
+
+**插件设置 → 模式设置**:
+
+```
+运行模式: Redir-Host（推荐）
+  - 兼容性最好
+  - 支持UDP转发
+  - 适合家庭网络
+
+或选择: Fake-IP（高级用户）
+  - 性能更好
+  - 可能有DNS污染问题
+```
+
+### 9.3 流量控制
+
+**插件设置 → 流量控制**:
+
+```yaml
+仅允许内网访问: 启用
+  - 绕过网段: 192.168.71.0/24
+
+访问控制模式: 全部代理
+  - 或按需配置黑/白名单
+```
+
+### 9.4 DNS设置
+
+**插件设置 → DNS设置**:
+
+```yaml
+本地DNS劫持: 启用
+Fake-IP模式: 禁用（Redir-Host模式下）
+
+自定义上游DNS服务器:
+  - NameServer:
+    * 223.5.5.5（阿里DNS）
+    * 119.29.29.29（腾讯DNS）
+  
+  - FallBack DNS:
+    * tls://1.1.1.1:853（Cloudflare）
+    * tls://8.8.8.8:853（Google）
+```
+
+### 9.5 规则设置
+
+**插件设置 → 规则设置（策略组）**:
+
+推荐配置：
+```
+PROXY（代理）: 使用节点选择
+DIRECT（直连）: 直连
+REJECT（拒绝）: 拒绝
+```
+
+**自动更新规则**：启用（每天凌晨4点）
+
+---
+
+## 🚀 步骤10: 启动OpenClash
+
+### 10.1 启动服务
+
+Web界面: **服务 → OpenClash**
+
+1. 点击 **启用OpenClash**
+2. 等待30-60秒
+3. 观察 **运行状态** 变为绿色
+
+### 10.2 检查服务状态
+
+SSH登录检查：
+
+```bash
+ssh root@192.168.71.254
+
+# 检查OpenClash状态
+/etc/init.d/openclash status
+
+# 检查Clash进程
+ps | grep clash
+
+# 查看日志
+logread | grep -i clash
+```
+
+### 10.3 防火墙验证
+
+```bash
+# 检查iptables规则
+iptables -t nat -L -n -v | grep -i clash
+iptables -t mangle -L -n -v | grep -i clash
+```
+
+---
+
+## 🌐 步骤11: 客户端配置
+
+### 方案A: DHCP自动分发（推荐 - 全局代理）
+
+**在主路由（192.168.71.1）配置DHCP选项**:
+
+- **网关**: 192.168.71.254（OpenWrt旁路由）
+- **DNS**: 192.168.71.254
+
+所有通过DHCP获取IP的设备自动走OpenWrt代理。
+
+### 方案B: 手动配置（部分设备代理）
+
+**在需要翻墙的设备上手动设置**:
+
+- **IP地址**: 自动获取或静态
+- **子网掩码**: 255.255.255.0
+- **网关**: 192.168.71.254（改为OpenWrt）
+- **DNS**: 192.168.71.254（改为OpenWrt）
+
+**不需要翻墙的设备**:
+- 网关保持: 192.168.71.1（主路由）
+
+---
+
+## ✅ 步骤12: 验证和测试
+
+### 12.1 网络连通性测试
+
+在客户端执行：
+
+```bash
+# 测试国内网站（直连）
+curl -I https://www.baidu.com
+
+# 测试国外网站（代理）
+curl -I https://www.google.com
+
+# 查看出口IP
+curl ipinfo.io
+curl cip.cc
+```
+
+### 12.2 DNS测试
+
+```bash
+# 测试DNS解析
+nslookup www.google.com 192.168.71.254
+dig @192.168.71.254 www.youtube.com
+```
+
+### 12.3 OpenClash面板
+
+访问: http://192.168.71.254:9090/ui
+
+- 查看连接状态
+- 测试节点延迟
+- 切换代理节点
+
+---
+
+## 🔄 步骤13: 设置开机自启
+
+```bash
+ssh root@192.168.71.254
+
+# 启用虚拟机开机自启
+exit
+
+# 在宿主机执行
+virsh autostart router
+
+# 验证
+virsh dominfo router | grep Autostart
+# 输出: Autostart:      enable
+```
+
+---
+
+## ⚠️ 重要注意事项
+
+### 1. 磁盘扩展必须操作
+
+- **问题**: `qemu-img resize` 只扩展镜像文件，不扩展分区
+- **后果**: 虚拟机内仍然只有100MB可用空间
+- **解决**: 必须执行步骤6的分区扩展操作
+
+### 2. 虚拟机创建方式选择
+
+- **预制镜像**（OpenWrt/pfSense）: 使用 `virt-install --import`
+- **ISO安装**（Ubuntu/CentOS）: 使用 `create-vm` 脚本
+
+### 3. OpenClash依赖关系
+
+- **必须先安装dnsmasq-full**: 替换默认的dnsmasq
+- **必须下载Clash内核**: 插件本身不包含内核文件
+- **必须配置订阅**: 没有节点无法启用服务
+
+### 4. 网络配置顺序
+
+1. 先配置OpenWrt静态IP
+2. 再安装OpenClash
+3. 最后配置客户端网关
+
+**错误顺序会导致网络中断！**
+
+### 5. 防火墙问题
+
+如果遇到无法访问外网：
+
+```bash
+# 检查防火墙规则
+ssh root@192.168.71.254
+iptables -t nat -L -n -v
+iptables -L -n -v
+
+# 重新启动OpenClash
+/etc/init.d/openclash restart
+
+# 重启防火墙
+/etc/init.d/firewall restart
+```
+
+### 6. 订阅更新失败
+
+常见原因：
+- 订阅地址错误
+- 网络连接问题（需要先能访问外网）
+- Clash内核未正确安装
+
+**解决**:
+```bash
+# 手动测试订阅地址
+curl -I "你的订阅地址"
+
+# 检查内核
+ls -lh /etc/openclash/core/
+```
+
+### 7. DNS污染问题
+
+症状: Google能ping通但浏览器无法打开
+
+**解决**:
+- 确保客户端DNS指向 192.168.71.254
+- 确保OpenClash的DNS配置正确
+- 清除客户端DNS缓存
+
+### 8. 性能调优
+
+**资源分配建议**:
+- 内存: 1GB（基本） / 2GB（推荐）
+- vCPU: 1核（基本） / 2核（大量连接）
+- 磁盘: 20GB（足够安装插件和日志）
+
+**调整配置**:
+```bash
+# 关闭虚拟机
+virsh shutdown router
+
+# 修改内存（改为2GB）
+virsh setmaxmem router 2G --config
+virsh setmem router 2G --config
+
+# 修改CPU（改为2核）
+virsh setvcpus router 2 --config --maximum
+virsh setvcpus router 2 --config
+
+# 启动虚拟机
+virsh start router
+```
+
+---
+
+## 📊 维护和监控
+
+### 日常维护
+
+```bash
+# 每周更新订阅
+Web界面 → OpenClash → 配置文件订阅 → 更新配置
+
+# 每月更新系统
+opkg update &amp;&amp; opkg list-upgradable
+opkg upgrade &lt;package-name&gt;
+
+# 每季度更新OpenClash
+下载最新版ipk并重新安装
+```
+
+### 日志查看
+
+```bash
+# 系统日志
+logread
+logread -f  # 实时查看
+
+# OpenClash日志
+logread | grep -i clash
+
+# 网络连接日志
+cat /var/log/openclash.log
+```
+
+### 备份配置
+
+```bash
+# 备份OpenClash配置
+scp root@192.168.71.254:/etc/openclash/config.yaml /backup/openclash-config.yaml
+
+# 或使用Web界面
+服务 → OpenClash → 配置文件管理 → 下载配置
+```
+
+---
+
+## 🐛 常见问题排查
+
+### 问题1: 虚拟机无法启动
+
+```bash
+# 查看详细错误
+virsh start router --console
+
+# 检查磁盘路径
+virsh domblklist router
+
+# 检查网络
+virsh domiflist router
+```
+
+### 问题2: 无法访问Web界面
+
+```bash
+# 检查网络连接
+ping 192.168.71.254
+
+# 检查uhttpd服务
+ssh root@192.168.71.254
+/etc/init.d/uhttpd status
+/etc/init.d/uhttpd restart
+```
+
+### 问题3: OpenClash启动失败
+
+```bash
+# 检查内核文件
+ls -lh /etc/openclash/core/
+
+# 检查配置文件
+ls -lh /etc/openclash/config.yaml
+
+# 手动启动查看错误
+/etc/init.d/openclash start
+logread | tail -50
+```
+
+### 问题4: 磁盘空间不足
+
+```bash
+# 如果即使扩展后仍空间不足，需要清理
+du -sh /overlay/*
+rm -rf /tmp/*
+opkg clean
+```
+
+---
+
+## 📝 完成清单
+
+- [x] 下载并准备OpenWrt镜像
+- [x] 正确扩展qcow2镜像到20GB
+- [x] 使用 `virt-install --import` 创建虚拟机
+- [x] 配置OpenWrt网络（192.168.71.254）
+- [x] 扩展虚拟机内部分区到20GB
+- [x] 安装OpenClash及所有依赖
+- [x] 下载Clash内核
+- [x] 配置订阅和代理规则
+- [x] 测试代理功能
+- [x] 设置开机自启
+- [x] 备份配置文件
+
+---
+
+## 🎉 总结
+
+您现在拥有一个完整配置的OpenWrt旁路由，支持：
+
+- ✅ 20GB存储空间
+- ✅ 透明代理（自动分流）
+- ✅ OpenClash智能翻墙
+- ✅ 高性能虚拟化
+- ✅ 灵活的客户端配置
+
+**关键要点**:
+1. **虚拟机创建**: 预制镜像必须用 `--import`
+2. **分区扩展**: qemu-img resize后必须手动扩展分区
+3. **依赖完整**: dnsmasq-full和Clash内核缺一不可
+4. **配置顺序**: 先网络、后插件、最后客户端
+
+享受科学上网！🚀
+
+---
+
+**下一步推荐阅读**:
+- **[09-补充-精准分流配置.md](#section-9)** - 高级分流规则
+- **[11-vm-nas.md](#section-11)** - 搭建NAS系统
+
+
+
+
+---
+
+
+
 # 09 - OpenWrt旁路由配置
 
 ## 📋 本文档内容
